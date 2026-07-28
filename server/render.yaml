@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: cash-choices-backend
+    env: go
+    buildCommand: go build -o server main.go
+    startCommand: ./server
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: "*"
