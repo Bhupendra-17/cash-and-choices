@@ -43,12 +43,12 @@ type ChatCompletionResponse struct {
 }
 
 func (s *AIService) CallAI(messages []ChatMessage, temperature float64, jsonFormat bool) (string, error) {
-	if s.cfg.OpenAIAPIKey == "" {
-		return "", fmt.Errorf("OPENAI_API_KEY is not configured on server")
+	if s.cfg.APIKey == "" {
+		return "", fmt.Errorf("GEMINI_API_KEY (or OPENAI_API_KEY) is not configured on server")
 	}
 
 	reqBody := ChatCompletionRequest{
-		Model:       "gpt-4o-mini",
+		Model:       s.cfg.Model,
 		Messages:    messages,
 		Temperature: temperature,
 	}
@@ -68,7 +68,7 @@ func (s *AIService) CallAI(messages []ChatMessage, temperature float64, jsonForm
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+s.cfg.OpenAIAPIKey)
+	req.Header.Set("Authorization", "Bearer "+s.cfg.APIKey)
 
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -82,7 +82,7 @@ func (s *AIService) CallAI(messages []ChatMessage, temperature float64, jsonForm
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("AI gateway error status %d: %s", resp.StatusCode, string(resBytes))
+		return "", fmt.Errorf("AI error status %d: %s", resp.StatusCode, string(resBytes))
 	}
 
 	var aiResp ChatCompletionResponse

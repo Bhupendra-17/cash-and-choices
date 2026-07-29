@@ -1,14 +1,13 @@
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").trim();
-
 /**
  * Resolves API routes dynamically based on VITE_API_BASE_URL.
  * In local dev: defaults to relative "/api/*" (proxied by Vite to localhost:5000).
  * In Vercel production: points to full URL if provided (e.g. "https://backend.onrender.com/api").
  */
 export function apiUrl(path: string): string {
-  if (!BASE_URL) return path;
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (!baseUrl) return path;
 
-  const cleanBase = BASE_URL.replace(/\/$/, "");
+  const cleanBase = baseUrl.replace(/\/$/, "");
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
 
   // Avoid duplicate /api/api/ if BASE_URL already contains /api

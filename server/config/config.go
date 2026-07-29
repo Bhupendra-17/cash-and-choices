@@ -8,8 +8,9 @@ import (
 
 type Config struct {
 	Port           string
-	OpenAIAPIKey   string
+	APIKey         string
 	GatewayURL     string
+	Model          string
 	AllowedOrigins string
 }
 
@@ -45,11 +46,33 @@ func LoadConfig() *Config {
 		port = "5000"
 	}
 
-	key := os.Getenv("OPENAI_API_KEY")
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	if apiKey == "" {
+		apiKey = os.Getenv("OPENAI_API_KEY")
+	}
 
+	model := os.Getenv("AI_MODEL")
 	gatewayURL := os.Getenv("GATEWAY_URL")
-	if gatewayURL == "" {
-		gatewayURL = "https://api.openai.com/v1/chat/completions"
+
+	isGemini := os.Getenv("GEMINI_API_KEY") != "" ||
+		strings.HasPrefix(apiKey, "AIzaSy") ||
+		strings.HasPrefix(apiKey, "AQ.") ||
+		strings.Contains(gatewayURL, "googleapis")
+
+	if isGemini {
+		if gatewayURL == "" {
+			gatewayURL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+		}
+		if model == "" {
+			model = "gemini-2.0-flash"
+		}
+	} else {
+		if gatewayURL == "" {
+			gatewayURL = "https://api.openai.com/v1/chat/completions"
+		}
+		if model == "" {
+			model = "gpt-4o-mini"
+		}
 	}
 
 	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
@@ -59,8 +82,9 @@ func LoadConfig() *Config {
 
 	return &Config{
 		Port:           port,
-		OpenAIAPIKey:   key,
+		APIKey:         apiKey,
 		GatewayURL:     gatewayURL,
+		Model:          model,
 		AllowedOrigins: allowedOrigins,
 	}
 }
