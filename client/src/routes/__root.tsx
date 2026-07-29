@@ -122,6 +122,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 import { AuthProvider } from "../lib/auth-context";
+import { Analytics } from "@vercel/analytics/react";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -132,6 +133,7 @@ function RootComponent() {
         <ThemeProvider>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
+          <Analytics />
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
