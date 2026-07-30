@@ -60,6 +60,7 @@ type UserProfile struct {
 	Email                string                `json:"email"`
 	Provider             string                `json:"provider"` // "email" or "google"
 	CreatedAt            time.Time             `json:"createdAt"`
+	SavedAnswers         []QuestionAnswer      `json:"savedAnswers"`
 	SavedRecommendations []SavedRecommendation `json:"savedRecommendations"`
 }
 

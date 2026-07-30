@@ -5,17 +5,26 @@ export interface PieChartProps {
   data: Array<{ name: string; value: number }>;
   colors: string[];
   valueFormatter?: (v: number) => string;
+  selectedIndex?: number | null;
+  onSelectSlice?: (index: number | null) => void;
 }
 
-export const SvgPieChart: React.FC<PieChartProps> = ({ data, colors, valueFormatter = (v) => `${v}` }) => {
+export const SvgPieChart: React.FC<PieChartProps> = ({
+  data,
+  colors,
+  valueFormatter = (v) => `${v}`,
+  selectedIndex = null,
+  onSelectSlice,
+}) => {
   const total = React.useMemo(() => data.reduce((acc, d) => acc + (d.value || 0), 0), [data]);
   const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
+
+  const activeIdx = selectedIndex !== null ? selectedIndex : hoveredIndex;
 
   if (!total || total <= 0) {
     return <div className="flex h-full items-center justify-center text-xs text-muted-foreground">No data</div>;
   }
 
-  // Calculate slice angles
   let accumulatedAngle = 0;
   const slices = data.map((d, i) => {
     const fraction = d.value / total;
@@ -23,7 +32,6 @@ export const SvgPieChart: React.FC<PieChartProps> = ({ data, colors, valueFormat
     const endAngle = accumulatedAngle + fraction * 360;
     accumulatedAngle = endAngle;
 
-    // Convert angles to SVG arc path
     const r = 40;
     const cx = 50;
     const cy = 50;
@@ -38,7 +46,6 @@ export const SvgPieChart: React.FC<PieChartProps> = ({ data, colors, valueFormat
 
     const largeArc = fraction > 0.5 ? 1 : 0;
 
-    // Inner radius for donut hole
     const rInner = 20;
     const x1Inner = cx + rInner * Math.cos(endRad);
     const y1Inner = cy + rInner * Math.sin(endRad);
@@ -60,23 +67,31 @@ export const SvgPieChart: React.FC<PieChartProps> = ({ data, colors, valueFormat
   return (
     <div className="relative flex h-full w-full items-center justify-center">
       <svg viewBox="0 0 100 100" className="h-full max-h-44 w-full">
-        {slices.map((slice, i) => (
-          <path
-            key={slice.name}
-            d={slice.pathData}
-            fill={slice.color}
-            className="transition-opacity duration-150 cursor-pointer"
-            style={{ opacity: hoveredIndex === null || hoveredIndex === i ? 1 : 0.4 }}
-            onMouseEnter={() => setHoveredIndex(i)}
-            onMouseLeave={() => setHoveredIndex(null)}
-          />
-        ))}
+        {slices.map((slice, i) => {
+          const isSelected = activeIdx === i;
+          return (
+            <path
+              key={slice.name}
+              d={slice.pathData}
+              fill={slice.color}
+              className="transition-all duration-200 cursor-pointer"
+              style={{
+                opacity: activeIdx === null || isSelected ? 1 : 0.25,
+                transform: isSelected ? "scale(1.04)" : "scale(1)",
+                transformOrigin: "center",
+              }}
+              onClick={() => onSelectSlice && onSelectSlice(selectedIndex === i ? null : i)}
+              onMouseEnter={() => setHoveredIndex(i)}
+              onMouseLeave={() => setHoveredIndex(null)}
+            />
+          );
+        })}
       </svg>
-      {hoveredIndex !== null && (
+      {activeIdx !== null && slices[activeIdx] && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="rounded-lg bg-popover/95 border border-border px-2.5 py-1 text-center shadow-md backdrop-blur">
-            <div className="text-[10px] font-medium text-muted-foreground">{slices[hoveredIndex].name}</div>
-            <div className="text-xs font-bold text-foreground">{valueFormatter(slices[hoveredIndex].value)}</div>
+          <div className="rounded-xl bg-popover/95 border border-border px-3 py-1.5 text-center shadow-lg backdrop-blur">
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase">{slices[activeIdx].name}</div>
+            <div className="text-xs font-extrabold text-foreground">{valueFormatter(slices[activeIdx].value)}</div>
           </div>
         </div>
       )}
@@ -114,7 +129,6 @@ export const SvgRadarChart: React.FC<RadarChartProps> = ({ data, series }) => {
   return (
     <div className="relative h-full w-full">
       <svg viewBox="0 0 320 300" className="h-full w-full">
-        {/* Background Grid */}
         {gridLevels.map((level) => {
           const points = data
             .map((_, i) => {
@@ -125,7 +139,6 @@ export const SvgRadarChart: React.FC<RadarChartProps> = ({ data, series }) => {
           return <polygon key={level} points={points} fill="none" stroke="currentColor" className="text-border" strokeDasharray="3 3" opacity={0.6} />;
         })}
 
-        {/* Spoke lines & Axis labels */}
         {data.map((d, i) => {
           const { x, y } = getCoordinates(i, 1.0);
           const labelAngle = ((i * (360 / numAxes) - 90) * Math.PI) / 180;
@@ -154,7 +167,6 @@ export const SvgRadarChart: React.FC<RadarChartProps> = ({ data, series }) => {
           );
         })}
 
-        {/* Data Polygons */}
         {series.map((s) => {
           const points = data
             .map((d, i) => {
@@ -188,7 +200,6 @@ export const SvgRadarChart: React.FC<RadarChartProps> = ({ data, series }) => {
         })}
       </svg>
 
-      {/* Tooltip on Hover */}
       {hoveredAxis !== null && (
         <div className="absolute top-2 right-2 rounded-xl bg-popover/95 border border-border p-2.5 text-xs shadow-lg backdrop-blur">
           <div className="font-semibold text-foreground">{data[hoveredAxis].axis}</div>
@@ -211,9 +222,14 @@ export const SvgRadarChart: React.FC<RadarChartProps> = ({ data, series }) => {
 export interface AreaChartProps {
   data: Array<{ year: number | string; invested: number; value: number }>;
   valueFormatter?: (v: number) => string;
+  highlightMetric?: "all" | "invested" | "gains" | "total" | "tax" | "real" | string;
 }
 
-export const SvgAreaChart: React.FC<AreaChartProps> = ({ data, valueFormatter = (v) => `${v}` }) => {
+export const SvgAreaChart: React.FC<AreaChartProps> = ({
+  data,
+  valueFormatter = (v) => `${v}`,
+  highlightMetric = "all",
+}) => {
   const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
 
   if (!data || data.length === 0) return null;
@@ -229,7 +245,6 @@ export const SvgAreaChart: React.FC<AreaChartProps> = ({ data, valueFormatter = 
   const getX = (index: number) => margin.left + (index / (data.length - 1 || 1)) * plotW;
   const getY = (val: number) => margin.top + plotH - (val / maxVal) * plotH;
 
-  // Build SVG Path
   const investedPoints = data.map((d, i) => `${getX(i)},${getY(d.invested)}`);
   const valuePoints = data.map((d, i) => `${getX(i)},${getY(d.value)}`);
 
@@ -239,15 +254,17 @@ export const SvgAreaChart: React.FC<AreaChartProps> = ({ data, valueFormatter = 
   const investedArea = `${investedLine} L ${getX(data.length - 1)},${margin.top + plotH} L ${getX(0)},${margin.top + plotH} Z`;
   const valueArea = `${valueLine} L ${getX(data.length - 1)},${margin.top + plotH} L ${getX(0)},${margin.top + plotH} Z`;
 
-  // Grid steps (4 horizontal lines)
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((pct) => ({
     val: maxVal * pct,
     y: margin.top + plotH - pct * plotH,
   }));
 
-  // X ticks (max 6 labels)
   const xStep = Math.ceil(data.length / 6);
   const xTicks = data.filter((_, i) => i % xStep === 0 || i === data.length - 1);
+
+  // Determine line & area opacities based on metric highlighted from table selection
+  const isInvestedActive = highlightMetric === "all" || highlightMetric === "invested";
+  const isValueActive = highlightMetric === "all" || highlightMetric === "gains" || highlightMetric === "total" || highlightMetric === "real";
 
   return (
     <div
@@ -257,12 +274,12 @@ export const SvgAreaChart: React.FC<AreaChartProps> = ({ data, valueFormatter = 
       <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full">
         <defs>
           <linearGradient id="gradInvested" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7B5AF0" stopOpacity="0.35" />
+            <stop offset="0%" stopColor="#7B5AF0" stopOpacity={isInvestedActive ? 0.35 : 0.08} />
             <stop offset="100%" stopColor="#7B5AF0" stopOpacity="0.0" />
           </linearGradient>
           <linearGradient id="gradValue" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#F05AA8" stopOpacity="0.45" />
-            <stop offset="100%" stopColor="#F05AA8" stopOpacity="0.0" />
+            <stop offset="0%" stopColor="#10B981" stopOpacity={isValueActive ? 0.45 : 0.08} />
+            <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
           </linearGradient>
         </defs>
 
@@ -287,12 +304,26 @@ export const SvgAreaChart: React.FC<AreaChartProps> = ({ data, valueFormatter = 
         })}
 
         {/* Area Fills */}
-        <path d={valueArea} fill="url(#gradValue)" />
-        <path d={investedArea} fill="url(#gradInvested)" />
+        <path d={valueArea} fill="url(#gradValue)" className="transition-all duration-200" />
+        <path d={investedArea} fill="url(#gradInvested)" className="transition-all duration-200" />
 
         {/* Lines */}
-        <path d={investedLine} fill="none" stroke="#7B5AF0" strokeWidth={2.5} />
-        <path d={valueLine} fill="none" stroke="#F05AA8" strokeWidth={2.5} />
+        <path
+          d={investedLine}
+          fill="none"
+          stroke="#7B5AF0"
+          strokeWidth={highlightMetric === "invested" ? 4 : 2.5}
+          opacity={isInvestedActive ? 1 : 0.25}
+          className="transition-all duration-200"
+        />
+        <path
+          d={valueLine}
+          fill="none"
+          stroke="#10B981"
+          strokeWidth={highlightMetric === "gains" || highlightMetric === "total" || highlightMetric === "real" ? 4 : 2.5}
+          opacity={isValueActive ? 1 : 0.25}
+          className="transition-all duration-200"
+        />
 
         {/* Hover Guideline & Dots */}
         {hoveredIdx !== null && (
@@ -306,8 +337,8 @@ export const SvgAreaChart: React.FC<AreaChartProps> = ({ data, valueFormatter = 
               className="text-foreground/40"
               strokeDasharray="2 2"
             />
-            <circle cx={getX(hoveredIdx)} cy={getY(data[hoveredIdx].invested)} r={4} fill="#7B5AF0" />
-            <circle cx={getX(hoveredIdx)} cy={getY(data[hoveredIdx].value)} r={4} fill="#F05AA8" />
+            <circle cx={getX(hoveredIdx)} cy={getY(data[hoveredIdx].invested)} r={5} fill="#7B5AF0" />
+            <circle cx={getX(hoveredIdx)} cy={getY(data[hoveredIdx].value)} r={5} fill="#10B981" />
           </g>
         )}
 
@@ -329,13 +360,13 @@ export const SvgAreaChart: React.FC<AreaChartProps> = ({ data, valueFormatter = 
       {/* Hover Tooltip */}
       {hoveredIdx !== null && (
         <div
-          className="absolute pointer-events-none rounded-xl bg-popover/95 border border-border p-2 text-xs shadow-lg backdrop-blur"
+          className="absolute pointer-events-none rounded-xl bg-popover/95 border border-border p-2.5 text-xs shadow-lg backdrop-blur"
           style={{
-            left: `${Math.min(80, Math.max(10, (getX(hoveredIdx) / width) * 100))}%`,
-            top: "10%",
+            left: `${Math.min(75, Math.max(15, (getX(hoveredIdx) / width) * 100))}%`,
+            top: "8%",
           }}
         >
-          <div className="font-semibold text-foreground">Year {data[hoveredIdx].year}</div>
+          <div className="font-bold text-foreground">Year {data[hoveredIdx].year}</div>
           <div className="mt-1 flex items-center justify-between gap-3 text-muted-foreground">
             <span className="flex items-center gap-1">
               <span className="size-2 rounded-full bg-[#7B5AF0]" />
@@ -345,10 +376,10 @@ export const SvgAreaChart: React.FC<AreaChartProps> = ({ data, valueFormatter = 
           </div>
           <div className="mt-0.5 flex items-center justify-between gap-3 text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="size-2 rounded-full bg-[#F05AA8]" />
-              Value:
+              <span className="size-2 rounded-full bg-[#10B981]" />
+              Gross Value:
             </span>
-            <span className="font-semibold text-foreground">{valueFormatter(data[hoveredIdx].value)}</span>
+            <span className="font-bold text-emerald-600 dark:text-emerald-400">{valueFormatter(data[hoveredIdx].value)}</span>
           </div>
         </div>
       )}

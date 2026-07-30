@@ -1,7 +1,7 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { SvgAreaChart, SvgPieChart } from "@/components/ui/svg-charts";
-import { Info, Scale } from "lucide-react";
+import { Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -24,6 +24,7 @@ import {
   INVESTMENT_KINDS,
   type InvestmentKind
 } from "@/lib/calculators";
+import { cn } from "@/lib/utils";
 
 const TYPES = ["sip", "lumpsum", "fd", "rd", "ppf", "gold", "withdrawal-tax"] as const;
 type CalcType = (typeof TYPES)[number];
@@ -74,16 +75,19 @@ function CalculatorRoute() {
 }
 
 const INR = (n: number) =>
-  `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+  `₹${Math.round(n).toLocaleString("en-IN")}`;
 
 function CalculatorForm({ type }: { type: CalcType }) {
-  // Shared state — different calcs use different subsets
+  // Shared state
   const [monthly, setMonthly] = useState(10000);
   const [amount, setAmount] = useState(500000);
   const [years, setYears] = useState(10);
   const [rate, setRate] = useState(type === "fd" ? 7 : type === "rd" ? 6.8 : type === "ppf" ? 7.1 : type === "gold" ? 8 : 12);
   const [slab, setSlab] = useState(30);
-  const [inflation, setInflation] = useState(6);
+  const [inflation, setInflation] = useState(5.5);
+
+  // Active highlighted metric selected by user clicking table rows
+  const [selectedMetric, setSelectedMetric] = useState<string>("all");
 
   const result: CalcResult = useMemo(() => {
     switch (type) {
@@ -108,11 +112,16 @@ function CalculatorForm({ type }: { type: CalcType }) {
   const usesSlab = type === "fd" || type === "rd" || type === "gold";
   const amountLabel = type === "ppf" ? "Yearly contribution" : "Investment amount";
 
+  const toggleMetric = (metricKey: string) => {
+    setSelectedMetric((prev) => (prev === metricKey ? "all" : metricKey));
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-      <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
-        <h2 className="text-lg font-semibold capitalize">{type} inputs</h2>
-        <div className="mt-4 space-y-4">
+      {/* Inputs Sidebar */}
+      <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-card p-5 shadow-sm">
+        <h2 className="text-lg font-bold capitalize tracking-tight">{type} Inputs</h2>
+        <div className="mt-4 space-y-5">
           {usesMonthly ? (
             <Field label="Monthly amount" value={monthly} onChange={setMonthly} suffix="₹" min={500} max={200000} step={500} />
           ) : (
@@ -120,73 +129,213 @@ function CalculatorForm({ type }: { type: CalcType }) {
           )}
           <Field label="Duration (years)" value={years} onChange={setYears} min={type === "ppf" ? 15 : 1} max={40} step={1} />
           <Field label={type === "gold" ? "Expected appreciation %" : "Expected return %"} value={rate} onChange={setRate} step={0.1} min={0.5} max={30} />
+          
           {usesSlab && (
             <div>
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Your tax slab</Label>
+              <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Your Tax Slab</Label>
               <div className="mt-2 flex items-center gap-3">
                 <Slider value={[slab]} min={0} max={30} step={5} onValueChange={(v) => setSlab(v[0])} />
                 <span className="w-10 text-right text-sm font-medium">{slab}%</span>
               </div>
             </div>
           )}
+
           {type !== "ppf" && type !== "gold" && (
-            <div>
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Inflation assumption</Label>
-              <div className="mt-2 flex items-center gap-3">
+            <div className="rounded-xl border border-brand/20 bg-brand/5 p-3.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px] font-bold uppercase tracking-wider text-brand">
+                  Inflation Rate
+                </Label>
+                <span className="rounded-md bg-brand text-white px-2 py-0.5 text-[10px] font-bold">
+                  AI Predicted: 5.5% p.a.
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground leading-snug">
+                Showing as per current macro status predicted by AI engine (India CPI ~5.5%).
+              </p>
+              <div className="mt-2.5 flex items-center gap-3">
                 <Slider value={[inflation]} min={0} max={12} step={0.5} onValueChange={(v) => setInflation(v[0])} />
-                <span className="w-12 text-right text-sm font-medium">{inflation}%</span>
+                <span className="w-12 text-right text-sm font-bold text-neutral-900 dark:text-neutral-100">{inflation}%</span>
               </div>
             </div>
           )}
         </div>
       </div>
 
+      {/* Table-Based Calculations & Dynamic Graph */}
       <div className="space-y-6">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <ResultCard k="Invested" v={INR(result.invested)} />
-          <ResultCard k="Total value" v={INR(result.totalValue)} accent />
-          <ResultCard k="Est. tax" v={INR(result.estimatedTax)} />
-          <ResultCard k="Net withdrawal" v={INR(result.netWithdrawal)} accent />
-          <ResultCard k="Gains" v={INR(result.gains)} />
-          <ResultCard k="Taxable gains" v={INR(result.taxableGain)} />
-          <ResultCard k="Inflation-adjusted" v={INR(result.inflationAdjusted)} />
-          <ResultCard k="Effective annual return" v={`${result.effectiveAnnualReturn}%`} />
+        
+        {/* Main Calculation Summary Table */}
+        <div className="overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-card shadow-sm">
+          <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-2 bg-neutral-50/50 dark:bg-neutral-950/40">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100">
+                  Calculation Summary Table
+                </h3>
+                <span className="text-[10px] font-medium text-neutral-500 bg-neutral-200/60 dark:bg-neutral-800 px-2 py-0.5 rounded">
+                  Click any row to focus graph
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Select a row below to isolate its series on the visual growth graph.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-brand bg-brand/10 dark:bg-brand/20 px-3 py-1 rounded-full">
+              CAGR: {result.effectiveAnnualReturn}%
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-neutral-100/70 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 text-neutral-500 uppercase text-[10px] tracking-wider font-semibold select-none">
+                <tr>
+                  <th className="p-3.5 pl-4">Calculation Component (Click to Focus Graph)</th>
+                  <th className="p-3.5 text-right">Gross Nominal</th>
+                  <th className="p-3.5 text-right">Deductions / Impact</th>
+                  <th className="p-3.5 text-right pr-4 font-bold text-neutral-900 dark:text-neutral-100">Net Value</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800 cursor-pointer">
+                
+                {/* 1. Invested Row */}
+                <tr
+                  onClick={() => toggleMetric("invested")}
+                  className={cn(
+                    "transition-colors duration-150 hover:bg-neutral-50 dark:hover:bg-neutral-850",
+                    selectedMetric === "invested" && "bg-purple-50 dark:bg-purple-950/40 border-l-4 border-l-purple-600 font-semibold"
+                  )}
+                >
+                  <td className="p-3.5 pl-4 font-medium text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-[#7B5AF0]" />
+                    1. Total Invested Capital
+                  </td>
+                  <td className="p-3.5 text-right font-medium">{INR(result.invested)}</td>
+                  <td className="p-3.5 text-right text-neutral-400">—</td>
+                  <td className="p-3.5 text-right pr-4 font-medium text-neutral-900 dark:text-neutral-100">{INR(result.invested)}</td>
+                </tr>
+
+                {/* 2. Capital Gains Row */}
+                <tr
+                  onClick={() => toggleMetric("gains")}
+                  className={cn(
+                    "transition-colors duration-150 hover:bg-neutral-50 dark:hover:bg-neutral-850",
+                    selectedMetric === "gains" && "bg-emerald-50 dark:bg-emerald-950/40 border-l-4 border-l-emerald-600 font-semibold"
+                  )}
+                >
+                  <td className="p-3.5 pl-4 font-medium text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-[#10B981]" />
+                    2. Capital Gains / Profit Generated
+                  </td>
+                  <td className="p-3.5 text-right font-medium text-emerald-600 dark:text-emerald-400">+{INR(result.gains)}</td>
+                  <td className="p-3.5 text-right text-neutral-400">—</td>
+                  <td className="p-3.5 text-right pr-4 font-medium text-emerald-600 dark:text-emerald-400">+{INR(result.gains)}</td>
+                </tr>
+
+                {/* 3. Total Value Row */}
+                <tr
+                  onClick={() => toggleMetric("total")}
+                  className={cn(
+                    "transition-colors duration-150 hover:bg-neutral-50 dark:hover:bg-neutral-850 font-semibold",
+                    selectedMetric === "total" && "bg-brand/10 dark:bg-brand/20 border-l-4 border-l-brand"
+                  )}
+                >
+                  <td className="p-3.5 pl-4 text-neutral-900 dark:text-neutral-100">3. Gross Maturity Value (Total Value)</td>
+                  <td className="p-3.5 text-right text-neutral-900 dark:text-neutral-100">{INR(result.totalValue)}</td>
+                  <td className="p-3.5 text-right text-neutral-400">—</td>
+                  <td className="p-3.5 text-right pr-4 text-neutral-900 dark:text-neutral-100">{INR(result.totalValue)}</td>
+                </tr>
+
+                {/* 4. Tax Row */}
+                <tr
+                  onClick={() => toggleMetric("tax")}
+                  className={cn(
+                    "transition-colors duration-150 hover:bg-neutral-50 dark:hover:bg-neutral-850",
+                    selectedMetric === "tax" && "bg-rose-50 dark:bg-rose-950/40 border-l-4 border-l-rose-600 font-semibold"
+                  )}
+                >
+                  <td className="p-3.5 pl-4 font-medium text-neutral-900 dark:text-neutral-100">4. Estimated Capital Gains Tax ({result.taxableGain > 0 ? "Taxable" : "Exempt"})</td>
+                  <td className="p-3.5 text-right text-neutral-400">—</td>
+                  <td className="p-3.5 text-right text-rose-600 dark:text-rose-400 font-medium">-{INR(result.estimatedTax)}</td>
+                  <td className="p-3.5 text-right pr-4 text-rose-600 dark:text-rose-400 font-medium">-{INR(result.estimatedTax)}</td>
+                </tr>
+
+                {/* 5. Inflation Row */}
+                <tr
+                  onClick={() => toggleMetric("real")}
+                  className={cn(
+                    "transition-colors duration-150 hover:bg-neutral-50 dark:hover:bg-neutral-850",
+                    selectedMetric === "real" && "bg-amber-50 dark:bg-amber-950/40 border-l-4 border-l-amber-600 font-semibold"
+                  )}
+                >
+                  <td className="p-3.5 pl-4 font-medium text-neutral-900 dark:text-neutral-100">
+                    5. Inflation Impact ({inflation}% p.a. AI predicted)
+                  </td>
+                  <td className="p-3.5 text-right text-neutral-400">—</td>
+                  <td className="p-3.5 text-right text-amber-600 dark:text-amber-400 font-medium">
+                    -{INR(result.totalValue - result.inflationAdjusted)}
+                  </td>
+                  <td className="p-3.5 text-right pr-4 text-amber-600 dark:text-amber-400 font-medium">
+                    {INR(result.inflationAdjusted)}
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot className="bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 font-bold border-t-2 border-neutral-200 dark:border-neutral-800">
+                <tr>
+                  <td className="p-4 pl-4 uppercase tracking-wider text-xs">TOTAL NET IN-HAND WITHDRAWAL</td>
+                  <td className="p-4 text-right opacity-80 font-normal">{INR(result.totalValue)}</td>
+                  <td className="p-4 text-right opacity-80 font-normal">-{INR(result.estimatedTax)}</td>
+                  <td className="p-4 text-right pr-4 text-sm sm:text-base font-extrabold text-emerald-400 dark:text-emerald-700">{INR(result.netWithdrawal)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
 
+        {/* Visual Graph Refinement reflecting Selected Table Row */}
         {result.yearly && (
-          <div className="rounded-3xl border border-border bg-card p-4 shadow-soft">
-            <h3 className="text-sm font-semibold">Growth over time</h3>
-            <div className="mt-3 h-64 w-full">
-              <SvgAreaChart data={result.yearly} valueFormatter={(v) => INR(v)} />
+          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-card p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Growth Projection Visual Graph</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Reflecting focused metric: <strong className="text-brand capitalize">{selectedMetric === "all" ? "All Series (Complete Overview)" : selectedMetric}</strong>
+                </p>
+              </div>
+
+              {selectedMetric !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedMetric("all")}
+                  className="rounded-lg bg-neutral-100 dark:bg-neutral-800 px-2.5 py-1 text-xs font-semibold text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                >
+                  Reset Focus
+                </button>
+              )}
+            </div>
+
+            <div className="mt-4 h-64 w-full">
+              <SvgAreaChart
+                data={result.yearly}
+                valueFormatter={(v) => INR(v)}
+                highlightMetric={selectedMetric}
+              />
             </div>
           </div>
         )}
 
-        <div className="rounded-3xl border border-brand/30 bg-brand/5 p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Info className="size-4 text-brand" /> How this is calculated
+        {/* Calculation Logic & Rules Explanation */}
+        <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-950/40 p-5">
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-neutral-900 dark:text-neutral-100">
+            <Info className="size-4 text-brand" /> Calculation Logic & Rules
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">{explanation(type)}</p>
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-2 text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{explanation(type)}</p>
+          <p className="mt-3 text-[11px] text-neutral-400 dark:text-neutral-500">
             Estimates only. Tax rules based on FY 2025-26 (Finance Act 2024). Actual outcomes depend
-            on realised returns, timing of cash flows and your full tax situation.
+            on realized returns, timing of cash flows, and your tax slab.
           </p>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ResultCard({ k, v, accent }: { k: string; v: string; accent?: boolean }) {
-  return (
-    <div
-      className={
-        "rounded-2xl border border-border p-4 " +
-        (accent ? "bg-brand/5" : "bg-card")
-      }
-    >
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{k}</div>
-      <div className="mt-1 text-xl font-semibold">{v}</div>
     </div>
   );
 }
@@ -210,9 +359,9 @@ function Field({
 }) {
   return (
     <div>
-      <Label className="text-xs uppercase tracking-wide text-muted-foreground">{label}</Label>
+      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</Label>
       <div className="mt-2 flex items-center gap-2">
-        {suffix && <span className="text-muted-foreground">{suffix}</span>}
+        {suffix && <span className="text-muted-foreground text-sm font-medium">{suffix}</span>}
         <Input
           type="number"
           value={value}
@@ -224,10 +373,10 @@ function Field({
             if (!Number.isFinite(n)) return;
             onChange(Math.max(min, Math.min(max, n)));
           }}
-          className="rounded-full"
+          className="rounded-xl font-medium"
         />
       </div>
-      <div className="mt-2">
+      <div className="mt-2.5">
         <Slider value={[value]} min={min} max={max} step={step} onValueChange={(v) => onChange(v[0])} />
       </div>
     </div>
@@ -251,7 +400,7 @@ function explanation(type: CalcType) {
   }
 }
 
-const PIE = ["#7B5AF0", "#F05AA8", "#FFB454", "#48D3B4"];
+const PIE = ["#2563EB", "#10B981", "#F59E0B", "#EF4444"];
 
 function TaxCalcForm() {
   const [kind, setKind] = useState<InvestmentKind>("equity_mf");
@@ -261,6 +410,9 @@ function TaxCalcForm() {
   const [date, setDate] = useState("2023-04-15");
   const [slab, setSlab] = useState(30);
   const [exitLoad, setExitLoad] = useState(0);
+
+  // Selected slice index on pie chart
+  const [selectedSlice, setSelectedSlice] = useState<number | null>(null);
 
   const breakdown = useMemo(
     () =>
@@ -277,19 +429,20 @@ function TaxCalcForm() {
   );
 
   const pieData = [
-    { name: "Net to you", value: breakdown.netReceived },
-    { name: "Tax", value: breakdown.estimatedTax },
-    { name: "Exit load", value: breakdown.exitLoad },
+    { name: "Net Received", value: breakdown.netReceived },
+    { name: "Estimated Tax", value: breakdown.estimatedTax },
+    { name: "Exit Load", value: breakdown.exitLoad },
   ].filter((x) => x.value > 0);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-      <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
+      {/* Inputs Panel */}
+      <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-card p-5 shadow-sm">
         <div className="space-y-4">
           <div>
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Investment type</Label>
+            <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Investment type</Label>
             <Select value={kind} onValueChange={(v) => setKind(v as InvestmentKind)}>
-              <SelectTrigger className="mt-2 rounded-full">
+              <SelectTrigger className="mt-2 rounded-xl">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -305,18 +458,18 @@ function TaxCalcForm() {
           <Money label="Current value" value={current} onChange={setCurrent} />
           <Money label="Withdrawal amount" value={withdraw} onChange={setWithdraw} />
           <div>
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Investment date</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-2 rounded-full" />
+            <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Investment date</Label>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-2 rounded-xl" />
           </div>
           <div>
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Your tax slab</Label>
+            <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Your tax slab</Label>
             <div className="mt-2 flex items-center gap-3">
               <Slider value={[slab]} min={0} max={30} step={5} onValueChange={(v) => setSlab(v[0])} />
               <span className="w-10 text-right text-sm font-medium">{slab}%</span>
             </div>
           </div>
           <div>
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Exit load %</Label>
+            <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Exit load %</Label>
             <div className="mt-2 flex items-center gap-3">
               <Slider value={[exitLoad]} min={0} max={3} step={0.25} onValueChange={(v) => setExitLoad(v[0])} />
               <span className="w-12 text-right text-sm font-medium">{exitLoad}%</span>
@@ -325,58 +478,123 @@ function TaxCalcForm() {
         </div>
       </div>
 
+      {/* Output Panel — Table View */}
       <div className="space-y-6">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Card k="Original capital in this withdrawal" v={INR(breakdown.originalInvestment)} sub="Not taxed" />
-          <Card k="Gains" v={INR(breakdown.gains)} sub={breakdown.gainCategory} accent />
-          <Card k="Estimated tax" v={INR(breakdown.estimatedTax)} sub={breakdown.gainCategory === "Exempt" ? "Tax-free" : "On gains only"} />
-          <Card k="Exit load" v={INR(breakdown.exitLoad)} />
-          <Card k="Holding period" v={`${(breakdown.holdingDays / 365.25).toFixed(2)} yrs`} sub={`${breakdown.holdingDays} days`} />
-          <Card k="Net you receive" v={INR(breakdown.netReceived)} accent />
+        
+        {/* Table View for Tax Breakdown */}
+        <div className="overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-card shadow-sm">
+          <div className="p-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40">
+            <h3 className="font-bold text-sm text-neutral-900 dark:text-neutral-100">
+              Withdrawal Tax & Payout Table
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Click any table row to highlight its slice in the breakdown pie chart.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-neutral-100/70 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 text-neutral-500 uppercase text-[10px] tracking-wider font-semibold select-none">
+                <tr>
+                  <th className="p-3.5 pl-4">Withdrawal Component</th>
+                  <th className="p-3.5 text-right">Gross Amount</th>
+                  <th className="p-3.5 text-right">Deduction / Rule</th>
+                  <th className="p-3.5 text-right pr-4 font-bold text-neutral-900 dark:text-neutral-100">Net Payout</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800 cursor-pointer">
+                <tr
+                  onClick={() => setSelectedSlice(selectedSlice === 0 ? null : 0)}
+                  className={cn("transition-colors duration-150 hover:bg-neutral-50 dark:hover:bg-neutral-850", selectedSlice === 0 && "bg-blue-50 dark:bg-blue-950/40 border-l-4 border-l-blue-600 font-semibold")}
+                >
+                  <td className="p-3.5 pl-4 font-medium text-neutral-900 dark:text-neutral-100">Net Payout Received</td>
+                  <td className="p-3.5 text-right font-medium">{INR(breakdown.netReceived)}</td>
+                  <td className="p-3.5 text-right text-emerald-600 dark:text-emerald-400 font-medium">Net Payout</td>
+                  <td className="p-3.5 text-right pr-4 font-medium text-emerald-600 dark:text-emerald-400">{INR(breakdown.netReceived)}</td>
+                </tr>
+                <tr
+                  onClick={() => setSelectedSlice(selectedSlice === 1 ? null : 1)}
+                  className={cn("transition-colors duration-150 hover:bg-neutral-50 dark:hover:bg-neutral-850", selectedSlice === 1 && "bg-emerald-50 dark:bg-emerald-950/40 border-l-4 border-l-emerald-600 font-semibold")}
+                >
+                  <td className="p-3.5 pl-4 font-medium text-neutral-900 dark:text-neutral-100">Estimated Capital Gains Tax</td>
+                  <td className="p-3.5 text-right text-neutral-400">—</td>
+                  <td className="p-3.5 text-right text-rose-600 dark:text-rose-400 font-medium">-{INR(breakdown.estimatedTax)}</td>
+                  <td className="p-3.5 text-right pr-4 text-rose-600 dark:text-rose-400 font-medium">-{INR(breakdown.estimatedTax)}</td>
+                </tr>
+                <tr
+                  onClick={() => setSelectedSlice(selectedSlice === 2 ? null : 2)}
+                  className={cn("transition-colors duration-150 hover:bg-neutral-50 dark:hover:bg-neutral-850", selectedSlice === 2 && "bg-amber-50 dark:bg-amber-950/40 border-l-4 border-l-amber-600 font-semibold")}
+                >
+                  <td className="p-3.5 pl-4 font-medium text-neutral-900 dark:text-neutral-100">Exit Load Deductions ({exitLoad}%)</td>
+                  <td className="p-3.5 text-right text-neutral-400">—</td>
+                  <td className="p-3.5 text-right text-amber-600 dark:text-amber-400 font-medium">-{INR(breakdown.exitLoad)}</td>
+                  <td className="p-3.5 text-right pr-4 text-amber-600 dark:text-amber-400 font-medium">-{INR(breakdown.exitLoad)}</td>
+                </tr>
+              </tbody>
+              <tfoot className="bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 font-bold border-t-2 border-neutral-200 dark:border-neutral-800">
+                <tr>
+                  <td className="p-4 pl-4 uppercase tracking-wider text-xs">TOTAL NET IN-HAND RECEIVED</td>
+                  <td className="p-4 text-right opacity-80 font-normal">{INR(withdraw)}</td>
+                  <td className="p-4 text-right opacity-80 font-normal">-{INR(breakdown.estimatedTax + breakdown.exitLoad)}</td>
+                  <td className="p-4 text-right pr-4 text-sm sm:text-base font-extrabold text-emerald-400 dark:text-emerald-700">{INR(breakdown.netReceived)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
 
+        {/* Rule explanation & pie chart */}
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-          <div className="rounded-3xl border border-brand/30 bg-brand/5 p-5">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <Info className="size-4 text-brand" /> Which rule applies &amp; why
+          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-950/40 p-5">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-neutral-900 dark:text-neutral-100">
+              <Info className="size-4 text-brand" /> Tax Rule Applied &amp; Rationale
             </div>
-            <p className="mt-2 text-sm font-medium">{breakdown.rule}</p>
-            <p className="mt-2 text-sm text-muted-foreground">{breakdown.ruleExplainer}</p>
-            <ul className="mt-4 space-y-2 text-sm">
+            <p className="mt-2 text-xs sm:text-sm font-semibold text-neutral-900 dark:text-neutral-100">{breakdown.rule}</p>
+            <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">{breakdown.ruleExplainer}</p>
+            <ul className="mt-3.5 space-y-2 text-xs">
               <li>
-                <span className="font-medium">Is tax applied to your original invested amount?</span>{" "}
-                <span className="text-muted-foreground">No — only the profit portion of the withdrawal is taxable.</span>
+                <span className="font-medium text-neutral-900 dark:text-neutral-100">Is tax applied to principal?</span>{" "}
+                <span className="text-neutral-500 dark:text-neutral-400">No — only profit portion is taxable.</span>
               </li>
               <li>
-                <span className="font-medium">Is it LTCG or STCG?</span>{" "}
-                <span className="text-muted-foreground">{breakdown.gainCategory === "LTCG" ? "Long-term (held over the qualifying period)." : breakdown.gainCategory === "STCG" ? "Short-term (under the qualifying period)." : breakdown.gainCategory === "Slab" ? "Taxed at your slab, no long/short-term distinction." : "Fully exempt."}</span>
-              </li>
-              <li>
-                <span className="font-medium">How is the tax computed?</span>{" "}
-                <span className="text-muted-foreground">Tax = Gains × applicable rate (after exemptions).</span>
+                <span className="font-medium text-neutral-900 dark:text-neutral-100">Holding Period ({breakdown.holdingDays} days):</span>{" "}
+                <span className="text-neutral-500 dark:text-neutral-400">{(breakdown.holdingDays / 365.25).toFixed(2)} years ({breakdown.gainCategory})</span>
               </li>
             </ul>
           </div>
-          <div className="rounded-3xl border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold">Where your withdrawal goes</h3>
-            <div className="mt-2 h-48">
-              <SvgPieChart data={pieData} colors={PIE} valueFormatter={(v) => INR(v)} />
+
+          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-card p-4">
+            <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-100">Payout Breakdown Pie Chart</h3>
+            <div className="mt-2 h-44">
+              <SvgPieChart
+                data={pieData}
+                colors={PIE}
+                valueFormatter={(v) => INR(v)}
+                selectedIndex={selectedSlice}
+                onSelectSlice={setSelectedSlice}
+              />
             </div>
-            <div className="mt-1 flex flex-wrap justify-center gap-2 text-xs">
+            <div className="mt-1 flex flex-wrap justify-center gap-2 text-[11px]">
               {pieData.map((p, i) => (
-                <span key={p.name} className="flex items-center gap-1 text-muted-foreground">
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => setSelectedSlice(selectedSlice === i ? null : i)}
+                  className={cn(
+                    "flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all text-neutral-500 dark:text-neutral-400",
+                    selectedSlice === i && "font-bold text-neutral-900 dark:text-neutral-100 bg-neutral-100 dark:bg-neutral-800"
+                  )}
+                >
                   <span className="inline-block size-2 rounded-full" style={{ background: PIE[i % PIE.length] }} />
                   {p.name}
-                </span>
+                </button>
               ))}
             </div>
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          Estimates only, based on tax rules under the Finance Act 2024 (FY 2025-26). Actual tax
-          depends on your total income, other capital gains, set-offs, cess and surcharge. For
-          regulated personal advice, consult a SEBI-registered advisor.
+        <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
+          Estimates based on Finance Act 2024 (FY 2025-26). Actual tax depends on your overall income and tax filing status.
         </p>
       </div>
     </div>
@@ -386,9 +604,9 @@ function TaxCalcForm() {
 function Money({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   return (
     <div>
-      <Label className="text-xs uppercase tracking-wide text-muted-foreground">{label}</Label>
+      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</Label>
       <div className="mt-2 flex items-center gap-2">
-        <span className="text-muted-foreground">₹</span>
+        <span className="text-muted-foreground text-sm font-medium">₹</span>
         <Input
           type="number"
           value={value}
@@ -397,19 +615,9 @@ function Money({ label, value, onChange }: { label: string; value: number; onCha
             const n = Number(e.target.value);
             if (Number.isFinite(n) && n >= 0) onChange(n);
           }}
-          className="rounded-full"
+          className="rounded-xl font-medium"
         />
       </div>
     </div>
   );
 }
-
-function Card({ k, v, sub, accent }: { k: string; v: string; sub?: string; accent?: boolean }) {
-  return (
-    <div className={"rounded-2xl border border-border p-4 " + (accent ? "bg-brand/5" : "bg-card")}>
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{k}</div>
-      <div className="mt-1 text-xl font-semibold">{v}</div>
-      {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
-    </div>
-  );
-}

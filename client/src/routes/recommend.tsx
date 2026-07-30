@@ -43,7 +43,7 @@ export const Route = createFileRoute("/recommend")({
   component: RecommendPage,
 });
 
-type Answers = {
+export type Answers = {
   goal: string;
   horizon: string;
   risk: string;
@@ -55,105 +55,105 @@ type Answers = {
   investments: string;
 };
 
-const QUESTIONS: {
+export const QUESTIONS: {
   id: keyof Answers;
   title: string;
   hint?: string;
   options: { value: string; label: string; tags?: string[] }[];
 }[] = [
-  {
-    id: "goal",
-    title: "What are you trying to solve today?",
-    options: [
-      { value: "grow", label: "Grow my money over time", tags: ["long_term", "passive"] },
-      { value: "protect", label: "Protect my family / income", tags: ["family_cover"] },
-      { value: "spend", label: "Choose a better everyday product", tags: ["everyday"] },
-      { value: "retire", label: "Plan for retirement", tags: ["retirement", "long_term"] },
-    ],
-  },
-  {
-    id: "horizon",
-    title: "How long can you leave the money alone?",
-    options: [
-      { value: "s", label: "Under 2 years", tags: ["short_term"] },
-      { value: "m", label: "2 – 5 years" },
-      { value: "l", label: "5 – 10 years", tags: ["long_term"] },
-      { value: "xl", label: "10+ years", tags: ["long_term", "retirement"] },
-    ],
-  },
-  {
-    id: "risk",
-    title: "How would you feel if this dropped 20% in a bad year?",
-    options: [
-      { value: "cant", label: "I can't lose capital", tags: ["safety"] },
-      { value: "wobble", label: "Uncomfortable but okay" },
-      { value: "fine", label: "Fine — I'll stay invested", tags: ["long_term"] },
-      { value: "add", label: "I'd buy more", tags: ["long_term"] },
-    ],
-  },
-  {
-    id: "monthly",
-    title: "Roughly how much can you put toward this each month?",
-    hint: "We don't store this. It only shapes suggestions.",
-    options: [
-      { value: "lt5", label: "Under ₹5,000", tags: ["beginner", "low_fees"] },
-      { value: "5to20", label: "₹5,000 – ₹20,000", tags: ["low_fees"] },
-      { value: "20to50", label: "₹20,000 – ₹50,000" },
-      { value: "50plus", label: "₹50,000+", tags: ["high_spend"] },
-    ],
-  },
-  {
-    id: "priority",
-    title: "What matters most to you?",
-    options: [
-      { value: "fees", label: "Lowest possible fees", tags: ["low_fees"] },
-      { value: "simple", label: "Simple to understand", tags: ["beginner", "passive"] },
-      { value: "returns", label: "Chase highest returns", tags: ["active"] },
-      { value: "safety", label: "Peace of mind", tags: ["safety"] },
-    ],
-  },
-  {
-    id: "interest",
-    title: "Which of these are you curious about?",
-    options: [
-      { value: "mf", label: "Mutual funds", tags: ["passive", "active"] },
-      { value: "cc", label: "Credit cards", tags: ["everyday", "travel"] },
-      { value: "ins", label: "Insurance", tags: ["family_cover"] },
-      { value: "gold", label: "Gold", tags: ["gold"] },
-    ],
-  },
-  {
-    id: "income",
-    title: "What's your rough monthly take-home?",
-    hint: "Used only in-browser to shape suggestions.",
-    options: [
-      { value: "lt30", label: "Under ₹30,000" },
-      { value: "30to75", label: "₹30,000 – ₹75,000" },
-      { value: "75to200", label: "₹75,000 – ₹2L" },
-      { value: "200plus", label: "₹2L+", tags: ["high_spend"] },
-    ],
-  },
-  {
-    id: "savings",
-    title: "How much emergency savings do you have?",
-    options: [
-      { value: "none", label: "Almost none", tags: ["safety", "beginner"] },
-      { value: "1to3", label: "1 – 3 months of expenses" },
-      { value: "3to6", label: "3 – 6 months" },
-      { value: "6plus", label: "6+ months", tags: ["long_term"] },
-    ],
-  },
-  {
-    id: "investments",
-    title: "What have you invested in before?",
-    options: [
-      { value: "none", label: "Nothing yet", tags: ["beginner", "passive"] },
-      { value: "fd", label: "FDs / savings only", tags: ["safety"] },
-      { value: "mf", label: "Mutual funds / SIPs" },
-      { value: "stocks", label: "Stocks / advanced", tags: ["active"] },
-    ],
-  },
-];
+    {
+      id: "goal",
+      title: "What are you trying to solve today?",
+      options: [
+        { value: "grow", label: "Grow my money over time", tags: ["long_term", "passive"] },
+        { value: "protect", label: "Protect my family / income", tags: ["family_cover"] },
+        { value: "spend", label: "Choose a better everyday product", tags: ["everyday"] },
+        { value: "retire", label: "Plan for retirement", tags: ["retirement", "long_term"] },
+      ],
+    },
+    {
+      id: "horizon",
+      title: "How long can you leave the money alone?",
+      options: [
+        { value: "s", label: "Under 2 years", tags: ["short_term"] },
+        { value: "m", label: "2 – 5 years" },
+        { value: "l", label: "5 – 10 years", tags: ["long_term"] },
+        { value: "xl", label: "10+ years", tags: ["long_term", "retirement"] },
+      ],
+    },
+    {
+      id: "risk",
+      title: "How would you feel if this dropped 20% in a bad year?",
+      options: [
+        { value: "cant", label: "I can't lose capital", tags: ["safety"] },
+        { value: "wobble", label: "Uncomfortable but okay" },
+        { value: "fine", label: "Fine — I'll stay invested", tags: ["long_term"] },
+        { value: "add", label: "I'd buy more", tags: ["long_term"] },
+      ],
+    },
+    {
+      id: "monthly",
+      title: "Roughly how much can you put toward this each month?",
+      hint: "We don't store this. It only shapes suggestions.",
+      options: [
+        { value: "lt5", label: "Under ₹5,000", tags: ["beginner", "low_fees"] },
+        { value: "5to20", label: "₹5,000 – ₹20,000", tags: ["low_fees"] },
+        { value: "20to50", label: "₹20,000 – ₹50,000" },
+        { value: "50plus", label: "₹50,000+", tags: ["high_spend"] },
+      ],
+    },
+    {
+      id: "priority",
+      title: "What matters most to you?",
+      options: [
+        { value: "fees", label: "Lowest possible fees", tags: ["low_fees"] },
+        { value: "simple", label: "Simple to understand", tags: ["beginner", "passive"] },
+        { value: "returns", label: "Chase highest returns", tags: ["active"] },
+        { value: "safety", label: "Peace of mind", tags: ["safety"] },
+      ],
+    },
+    {
+      id: "interest",
+      title: "Which of these are you curious about?",
+      options: [
+        { value: "mf", label: "Mutual funds", tags: ["passive", "active"] },
+        { value: "cc", label: "Credit cards", tags: ["everyday", "travel"] },
+        { value: "ins", label: "Insurance", tags: ["family_cover"] },
+        { value: "gold", label: "Gold", tags: ["gold"] },
+      ],
+    },
+    {
+      id: "income",
+      title: "What's your rough monthly take-home?",
+      hint: "Used only in-browser to shape suggestions.",
+      options: [
+        { value: "lt30", label: "Under ₹30,000" },
+        { value: "30to75", label: "₹30,000 – ₹75,000" },
+        { value: "75to200", label: "₹75,000 – ₹2L" },
+        { value: "200plus", label: "₹2L+", tags: ["high_spend"] },
+      ],
+    },
+    {
+      id: "savings",
+      title: "How much emergency savings do you have?",
+      options: [
+        { value: "none", label: "Almost none", tags: ["safety", "beginner"] },
+        { value: "1to3", label: "1 – 3 months of expenses" },
+        { value: "3to6", label: "3 – 6 months" },
+        { value: "6plus", label: "6+ months", tags: ["long_term"] },
+      ],
+    },
+    {
+      id: "investments",
+      title: "What have you invested in before?",
+      options: [
+        { value: "none", label: "Nothing yet", tags: ["beginner", "passive"] },
+        { value: "fd", label: "FDs / savings only", tags: ["safety"] },
+        { value: "mf", label: "Mutual funds / SIPs" },
+        { value: "stocks", label: "Stocks / advanced", tags: ["active"] },
+      ],
+    },
+  ];
 
 function tagsFrom(a: Partial<Answers>) {
   const set = new Set<string>();
@@ -165,7 +165,7 @@ function tagsFrom(a: Partial<Answers>) {
   return set;
 }
 
-function recommend(a: Answers) {
+export function recommend(a: Partial<Answers>) {
   const tags = tagsFrom(a);
   const scored = PRODUCTS.map((p) => {
     let match = 0;
@@ -182,7 +182,7 @@ function recommend(a: Answers) {
   return scored;
 }
 
-function whyMatches(p: Product, a: Answers) {
+export function whyMatches(p: Product, a: Partial<Answers>) {
   const reasons: string[] = [];
   if (a.priority === "fees" && p.bestFor.includes("low_fees"))
     reasons.push("Prioritises low fees — matches your top priority.");
@@ -284,11 +284,11 @@ function RecommendPage() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
-              <Sparkles className="size-3.5" /> Zero-affiliate engine
+              Zero-affiliate engine
             </div>
             <h1 className="mt-3 text-3xl font-bold sm:text-4xl">Recommendation Engine</h1>
             <p className="mt-2 text-muted-foreground">
-              Six questions. Plain-English picks. Nothing stored on our servers.
+              Just some questions.
             </p>
           </div>
         </div>

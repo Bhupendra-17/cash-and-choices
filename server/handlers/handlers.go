@@ -5,24 +5,36 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"cash-choices-server/models"
 	"cash-choices-server/services"
 )
 
 type APIHandler struct {
-	mfService   *services.MFService
-	aiService   *services.AIService
-	calcService *services.CalculatorService
-	authService *services.AuthService
+	mfService       *services.MFService
+	aiService       *services.AIService
+	calcService     *services.CalculatorService
+	authService     *services.AuthService
+	analyticsService *services.AnalyticsService
+	featuredService  *services.FeaturedFundsService
 }
 
-func NewAPIHandler(mf *services.MFService, ai *services.AIService, calc *services.CalculatorService, auth *services.AuthService) *APIHandler {
+func NewAPIHandler(
+	mf *services.MFService,
+	ai *services.AIService,
+	calc *services.CalculatorService,
+	auth *services.AuthService,
+	analytics *services.AnalyticsService,
+	featured *services.FeaturedFundsService,
+) *APIHandler {
 	return &APIHandler{
-		mfService:   mf,
-		aiService:   ai,
-		calcService: calc,
-		authService: auth,
+		mfService:        mf,
+		aiService:        ai,
+		calcService:      calc,
+		authService:      auth,
+		analyticsService: analytics,
+		featuredService:  featured,
 	}
 }
 
@@ -122,9 +134,8 @@ Explain what these numbers mean for a normal saver, and what a beginner should w
 	}
 
 	text, err := h.aiService.CallAI(messages, 0.4, false)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
-		return
+	if err != nil || strings.TrimSpace(text) == "" {
+		text = h.aiService.GenerateFallbackExplanation(req.Name, req.Category, req.Change1y, req.Change3y, req.DrawdownFromHigh)
 	}
 
 	respondJSON(w, http.StatusOK, models.FundExplainResponse{Text: text})
@@ -166,15 +177,10 @@ Only reference productIds from candidate list. Sort picks by best fit first.`, s
 	}
 
 	respStr, err := h.aiService.CallAI(messages, 0.4, true)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
 	var rec models.AIRecommendation
-	if err := json.Unmarshal([]byte(respStr), &rec); err != nil {
-		respondError(w, http.StatusInternalServerError, "failed to parse AI recommendation json: "+err.Error())
-		return
+	if err != nil || json.Unmarshal([]byte(respStr), &rec) != nil || len(rec.Picks) == 0 {
+		fallback := h.aiService.GenerateFallbackRecommendation(req.Answers, req.CandidateIds)
+		rec = *fallback
 	}
 
 	respondJSON(w, http.StatusOK, rec)
@@ -231,7 +237,7 @@ func (h *APIHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 	var req models.GoogleAuthRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
-	resp, err := h.authService.GoogleLogin(req)
+	resp, err := h.authService.GoogleAuth(req)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
@@ -248,7 +254,7 @@ func (h *APIHandler) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	otp, err := h.authService.RequestOTP(req)
+	otp, err := h.authService.RequestOTP(req.Email)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
@@ -307,5 +313,111 @@ func (h *APIHandler) SaveRecommendation(w http.ResponseWriter, r *http.Request) 
 	}
 
 	respondJSON(w, http.StatusOK, rec)
+}
+
+// POST /api/user/answers
+func (h *APIHandler) UpdateSavedAnswers(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	var answers []models.QuestionAnswer
+	if err := json.NewDecoder(r.Body).Decode(&answers); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+
+	user, err := h.authService.UpdateSavedAnswers(authHeader, answers)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, user)
+}
+
+// GET /api/funds/featured?category={cat}&limit={l}
+func (h *APIHandler) GetFeaturedFunds(w http.ResponseWriter, r *http.Request) {
+	category := r.URL.Query().Get("category")
+	limitStr := r.URL.Query().Get("limit")
+	limit := 20
+	if limitStr != "" {
+		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+
+	funds, err := h.featuredService.ListFeaturedFunds(category, limit)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, funds)
+}
+
+// POST /api/analytics/event
+func (h *APIHandler) LogAnalyticsEvent(w http.ResponseWriter, r *http.Request) {
+	var req models.LogEventRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+
+	// Try extracting user email from auth header if present
+	userEmail := ""
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" {
+		if user, err := h.authService.GetUserByToken(authHeader); err == nil && user != nil {
+			userEmail = user.Email
+		}
+	}
+
+	if err := h.analyticsService.LogEvent(userEmail, req); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"status": "logged"})
+}
+
+// GET /api/analytics/events
+func (h *APIHandler) GetAnalyticsEvents(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	userEmail := ""
+	if authHeader != "" {
+		if user, err := h.authService.GetUserByToken(authHeader); err == nil && user != nil {
+			userEmail = user.Email
+		}
+	}
+
+	events, err := h.analyticsService.GetUserEvents(userEmail, 50)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, events)
+}
+
+// POST /api/funds/interact
+func (h *APIHandler) RecordFundInteraction(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	userEmail := "anonymous"
+	if authHeader != "" {
+		if user, err := h.authService.GetUserByToken(authHeader); err == nil && user != nil {
+			userEmail = user.Email
+		}
+	}
+
+	var req models.RecordInteractionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+
+	if err := h.analyticsService.RecordInteraction(userEmail, req); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"status": "recorded"})
 }
 

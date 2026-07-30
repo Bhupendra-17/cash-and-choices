@@ -12,6 +12,7 @@ type Config struct {
 	GatewayURL     string
 	Model          string
 	AllowedOrigins string
+	DatabaseURL    string
 }
 
 func loadEnvFile(filename string) {
@@ -40,6 +41,8 @@ func loadEnvFile(filename string) {
 
 func LoadConfig() *Config {
 	loadEnvFile(".env")
+	loadEnvFile("../.env")
+	loadEnvFile("server/.env")
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -80,11 +83,17 @@ func LoadConfig() *Config {
 		allowedOrigins = "*"
 	}
 
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		dbURL = os.Getenv("POSTGRES_URL")
+	}
+
 	return &Config{
 		Port:           port,
 		APIKey:         apiKey,
 		GatewayURL:     gatewayURL,
 		Model:          model,
 		AllowedOrigins: allowedOrigins,
+		DatabaseURL:    dbURL,
 	}
 }

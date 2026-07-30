@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"cash-choices-server/config"
+	"cash-choices-server/db"
 	"cash-choices-server/handlers"
 	"cash-choices-server/services"
 )
@@ -47,12 +48,23 @@ func corsMiddleware(allowedOrigins string, next http.Handler) http.Handler {
 func main() {
 	cfg := config.LoadConfig()
 
+	// Initialize NeonDB PostgreSQL database connection
+	database, err := db.InitDB(cfg.DatabaseURL)
+	if err != nil {
+		log.Printf("⚠️ [DB WARNING] Failed to connect to database: %v. Running in-memory mode.", err)
+	}
+	if database != nil {
+		defer database.Close()
+	}
+
 	mfService := services.NewMFService()
 	aiService := services.NewAIService(cfg)
 	calcService := services.NewCalculatorService()
-	authService := services.NewAuthService()
+	authService := services.NewAuthService(database)
+	analyticsService := services.NewAnalyticsService(database)
+	featuredService := services.NewFeaturedFundsService(database, mfService)
 
-	apiHandler := handlers.NewAPIHandler(mfService, aiService, calcService, authService)
+	apiHandler := handlers.NewAPIHandler(mfService, aiService, calcService, authService, analyticsService, featuredService)
 
 	mux := http.NewServeMux()
 
@@ -60,9 +72,15 @@ func main() {
 	mux.HandleFunc("GET /api/health", apiHandler.HealthCheck)
 	mux.HandleFunc("GET /api/funds/search", apiHandler.SearchFunds)
 	mux.HandleFunc("GET /api/funds/detail", apiHandler.GetFundDetail)
+	mux.HandleFunc("GET /api/funds/featured", apiHandler.GetFeaturedFunds)
+	mux.HandleFunc("POST /api/funds/interact", apiHandler.RecordFundInteraction)
 	mux.HandleFunc("POST /api/funds/explain", apiHandler.ExplainFund)
 	mux.HandleFunc("POST /api/recommend", apiHandler.ExplainRecommendations)
 	mux.HandleFunc("POST /api/calculators/tax", apiHandler.CalculateTax)
+
+	// Analytics & Event Tracking Routes
+	mux.HandleFunc("POST /api/analytics/event", apiHandler.LogAnalyticsEvent)
+	mux.HandleFunc("GET /api/analytics/events", apiHandler.GetAnalyticsEvents)
 
 	// Auth & Profile Routes
 	mux.HandleFunc("POST /api/auth/signup", apiHandler.SignUp)
@@ -72,6 +90,7 @@ func main() {
 	mux.HandleFunc("POST /api/auth/reset-password", apiHandler.ResetPassword)
 	mux.HandleFunc("GET /api/auth/me", apiHandler.GetMe)
 	mux.HandleFunc("POST /api/user/recommendations", apiHandler.SaveRecommendation)
+	mux.HandleFunc("POST /api/user/answers", apiHandler.UpdateSavedAnswers)
 
 	handler := corsMiddleware(cfg.AllowedOrigins, mux)
 

@@ -31,6 +31,7 @@ export type UserProfile = {
   email: string;
   provider: "email" | "google" | string;
   createdAt: string;
+  savedAnswers?: QuestionAnswer[];
   savedRecommendations: SavedRecommendation[];
 };
 
@@ -50,6 +51,7 @@ type AuthContextType = {
     picks: PickItem[];
     nextSteps: string[];
   }) => Promise<SavedRecommendation>;
+  updateSavedAnswers: (answers: QuestionAnswer[]) => Promise<void>;
   logout: () => void;
 };
 
@@ -193,11 +195,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       prev
         ? {
             ...prev,
+            savedAnswers: payload.answers,
             savedRecommendations: [savedRec, ...(prev.savedRecommendations || [])],
           }
         : null
     );
     return savedRec;
+  };
+
+  const updateSavedAnswers = async (answers: QuestionAnswer[]) => {
+    if (!token) throw new Error("Must be logged in to update answers");
+    const res = await apiFetch("/api/user/answers", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(answers),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to update answers");
+    }
+    const updatedProfile = data as UserProfile;
+    setUser(updatedProfile);
   };
 
   const logout = () => {
@@ -218,6 +239,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         requestOTP,
         resetPassword,
         saveRecommendation,
+        updateSavedAnswers,
         logout,
       }}
     >
