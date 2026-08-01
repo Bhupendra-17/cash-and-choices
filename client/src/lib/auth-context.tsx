@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./api";
 
 export type QuestionAnswer = {
@@ -41,7 +42,7 @@ type AuthContextType = {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
-  googleLogin: (email?: string, name?: string) => Promise<void>;
+  googleLogin: (options?: { credential?: string; email?: string; name?: string }) => Promise<void>;
   requestOTP: (email: string) => Promise<{ message: string; otp?: string }>;
   resetPassword: (email: string, otp: string, newPassword: string) => Promise<void>;
   saveRecommendation: (payload: {
@@ -60,89 +61,94 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = "cash_choices_token";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const queryClient = useQueryClient();
+
   const [token, setToken] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem(TOKEN_KEY);
     }
     return null;
   });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Load user profile on initial render if token exists
-  useEffect(() => {
-    async function loadUser() {
-      if (!token) {
-        setUser(null);
-        setIsLoading(false);
-        return;
+  // Query user profile from /api/auth/me using TanStack React Query
+  const { data: user = null, isLoading } = useQuery<UserProfile | null>({
+    queryKey: ["auth", "me", token],
+    queryFn: async () => {
+      if (!token) return null;
+      const res = await apiFetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        localStorage.removeItem(TOKEN_KEY);
+        setToken(null);
+        return null;
       }
-      try {
-        const res = await apiFetch("/api/auth/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const u = (await res.json()) as UserProfile;
-          setUser(u);
-        } else {
-          // Token invalid or expired
-          localStorage.removeItem(TOKEN_KEY);
-          setToken(null);
-          setUser(null);
-        }
-      } catch (err) {
-        console.error("Failed to load auth me profile:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadUser();
-  }, [token]);
+      return (await res.json()) as UserProfile;
+    },
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5, // Cache profile for 5 mins
+  });
 
   const saveAuthResponse = (t: string, u: UserProfile) => {
     setToken(t);
-    setUser(u);
     localStorage.setItem(TOKEN_KEY, t);
+    queryClient.setQueryData(["auth", "me", t], u);
   };
 
-  const login = async (email: string, password: string) => {
-    const res = await apiFetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Login failed");
-    }
-    saveAuthResponse(data.token, data.user);
-  };
+  // Login Mutation
+  const loginMutation = useMutation({
+    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+      const res = await apiFetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Login failed");
+      return data as { token: string; user: UserProfile };
+    },
+    onSuccess: (data) => {
+      saveAuthResponse(data.token, data.user);
+    },
+  });
 
-  const signup = async (name: string, email: string, password: string) => {
-    const res = await apiFetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Sign up failed");
-    }
-    saveAuthResponse(data.token, data.user);
-  };
+  // Signup Mutation
+  const signupMutation = useMutation({
+    mutationFn: async ({ name, email, password }: { name: string; email: string; password: string }) => {
+      const res = await apiFetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Sign up failed");
+      return data as { token: string; user: UserProfile };
+    },
+    onSuccess: (data) => {
+      saveAuthResponse(data.token, data.user);
+    },
+  });
 
-  const googleLogin = async (email?: string, name?: string) => {
-    const res = await apiFetch("/api/auth/google", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email || "google.user@cashchoices.in", name: name || "Google User" }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Google login failed");
-    }
-    saveAuthResponse(data.token, data.user);
-  };
+  // Google Login Mutation
+  const googleLoginMutation = useMutation({
+    mutationFn: async (options?: { credential?: string; email?: string; name?: string }) => {
+      const res = await apiFetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          credential: options?.credential || "",
+          email: options?.email || "",
+          name: options?.name || "",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Google login failed");
+      return data as { token: string; user: UserProfile };
+    },
+    onSuccess: (data) => {
+      saveAuthResponse(data.token, data.user);
+    },
+  });
 
   const requestOTP = async (email: string) => {
     const res = await apiFetch("/api/auth/request-otp", {
@@ -151,9 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email }),
     });
     const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to send OTP");
-    }
+    if (!res.ok) throw new Error(data.error || "Failed to send OTP");
     return data as { message: string; otp?: string };
   };
 
@@ -164,9 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email, otp, newPassword }),
     });
     const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to reset password");
-    }
+    if (!res.ok) throw new Error(data.error || "Failed to reset password");
   };
 
   const saveRecommendation = async (payload: {
@@ -186,12 +188,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify(payload),
     });
     const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to save recommendation");
-    }
+    if (!res.ok) throw new Error(data.error || "Failed to save recommendation");
     const savedRec = data as SavedRecommendation;
-    // Update local user state
-    setUser((prev) =>
+
+    queryClient.setQueryData<UserProfile | null>(["auth", "me", token], (prev) =>
       prev
         ? {
             ...prev,
@@ -200,6 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         : null
     );
+
     return savedRec;
   };
 
@@ -214,18 +215,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify(answers),
     });
     const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to update answers");
-    }
+    if (!res.ok) throw new Error(data.error || "Failed to update answers");
     const updatedProfile = data as UserProfile;
-    setUser(updatedProfile);
+    queryClient.setQueryData(["auth", "me", token], updatedProfile);
   };
 
   const logout = () => {
     setToken(null);
-    setUser(null);
     localStorage.removeItem(TOKEN_KEY);
+    queryClient.removeQueries({ queryKey: ["auth"] });
   };
+
+  const login = (email: string, password: string) => loginMutation.mutateAsync({ email, password }).then(() => {});
+  const signup = (name: string, email: string, password: string) => signupMutation.mutateAsync({ name, email, password }).then(() => {});
+  const googleLogin = (options?: { credential?: string; email?: string; name?: string }) =>
+    googleLoginMutation.mutateAsync(options).then(() => {});
 
   return (
     <AuthContext.Provider

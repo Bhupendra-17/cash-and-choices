@@ -60,7 +60,8 @@ func main() {
 	mfService := services.NewMFService()
 	aiService := services.NewAIService(cfg)
 	calcService := services.NewCalculatorService()
-	authService := services.NewAuthService(database)
+	emailService := services.NewEmailService(cfg)
+	authService := services.NewAuthService(database, emailService)
 	analyticsService := services.NewAnalyticsService(database)
 	featuredService := services.NewFeaturedFundsService(database, mfService)
 

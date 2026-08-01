@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,81 @@ function AuthPage() {
   const [otpCode, setOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [demoOtpHint, setDemoOtpHint] = useState<string | null>(null);
+
+  // Helper to parse base64 JWT payload from Google ID Token
+  function parseJwtPayload(token: string): { email?: string; name?: string } | null {
+    try {
+      const base64Url = token.split(".")[1];
+      if (!base64Url) return null;
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Handle Google OAuth 2.0 callback when redirected back from accounts.google.com
+  useEffect(() => {
+    async function checkOAuthCallback() {
+      const hash = window.location.hash;
+      const query = window.location.search;
+
+      if (!hash && !query) return;
+
+      const params = new URLSearchParams(hash ? hash.substring(1) : query);
+      const idToken = params.get("id_token");
+      const accessToken = params.get("access_token");
+
+      if (idToken || accessToken) {
+        setLoading(true);
+        setError(null);
+        try {
+          let email = "";
+          let name = "";
+
+          if (idToken) {
+            const payload = parseJwtPayload(idToken);
+            if (payload) {
+              email = payload.email || "";
+              name = payload.name || "";
+            }
+          }
+
+          if (!email && accessToken) {
+            const userinfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (userinfoRes.ok) {
+              const info = await userinfoRes.json();
+              email = info.email || "";
+              name = info.name || "";
+            }
+          }
+
+          await googleLogin({
+            credential: idToken || accessToken || "",
+            email,
+            name,
+          });
+
+          // Clean URL parameters from browser address bar
+          window.history.replaceState(null, "", window.location.pathname);
+          navigate({ to: "/profile" });
+        } catch (err: any) {
+          setError(err.message || "Google Authentication failed");
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+    checkOAuthCallback();
+  }, [googleLogin, navigate]);
 
   // If already logged in, redirect or display quick session status
   if (user) {
@@ -91,16 +166,27 @@ function AuthPage() {
   };
 
   const handleGoogleSubmit = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      await googleLogin();
-      navigate({ to: "/profile" });
-    } catch (err: any) {
-      setError(err.message || "Google sign-in failed");
-    } finally {
-      setLoading(false);
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      setError(
+        "Google OAuth is not configured yet. Please add VITE_GOOGLE_CLIENT_ID to client/.env with your Google Cloud Console Client ID."
+      );
+      return;
     }
+
+    setError(null);
+    const redirectUri = window.location.origin + "/auth";
+    const nonce = Math.random().toString(36).substring(2);
+    const authUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${encodeURIComponent(clientId)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=id_token token` +
+      `&scope=${encodeURIComponent("openid email profile")}` +
+      `&nonce=${nonce}` +
+      `&prompt=select_account`;
+
+    window.location.href = authUrl;
   };
 
   const handleRequestOTP = async (e: React.FormEvent) => {

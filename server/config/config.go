@@ -13,6 +13,12 @@ type Config struct {
 	Model          string
 	AllowedOrigins string
 	DatabaseURL    string
+	SMTPHost       string
+	SMTPPort       string
+	SMTPUsername   string
+	SMTPPassword   string
+	SMTPFrom       string
+	GoogleClientID string
 }
 
 func loadEnvFile(filename string) {
@@ -88,6 +94,16 @@ func LoadConfig() *Config {
 		dbURL = os.Getenv("POSTGRES_URL")
 	}
 
+	smtpPort := os.Getenv("SMTP_PORT")
+	if smtpPort == "" {
+		smtpPort = "587"
+	}
+
+	smtpFrom := os.Getenv("SMTP_FROM")
+	if smtpFrom == "" {
+		smtpFrom = os.Getenv("SMTP_FROM_EMAIL")
+	}
+
 	return &Config{
 		Port:           port,
 		APIKey:         apiKey,
@@ -95,5 +111,11 @@ func LoadConfig() *Config {
 		Model:          model,
 		AllowedOrigins: allowedOrigins,
 		DatabaseURL:    dbURL,
+		SMTPHost:       os.Getenv("SMTP_HOST"),
+		SMTPPort:       smtpPort,
+		SMTPUsername:   os.Getenv("SMTP_USERNAME"),
+		SMTPPassword:   os.Getenv("SMTP_PASSWORD"),
+		SMTPFrom:       smtpFrom,
+		GoogleClientID: os.Getenv("GOOGLE_CLIENT_ID"),
 	}
 }

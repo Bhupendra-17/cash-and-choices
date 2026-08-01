@@ -31,8 +31,17 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment files
+# Environment files & secrets
 .env
-.env.local
-.env*.local
-!.env.example
+*.env
+.env.*
+.env.example
+*.env.example
+client/.env
+server/.env
+
+# Executable binaries
+*.exe
+server/*.exe
+server/server
+

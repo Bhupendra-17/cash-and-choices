@@ -3,6 +3,7 @@ package services
 import (
 	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -32,19 +33,51 @@ type OTPRecord struct {
 }
 
 type AuthService struct {
-	mu     sync.RWMutex
-	db     *sql.DB
-	users  map[string]*UserInternal // in-memory fallback
-	tokens map[string]string        // in-memory fallback
-	otps   map[string]OTPRecord     // in-memory fallback
+	mu           sync.RWMutex
+	db           *sql.DB
+	emailService *EmailService
+	users        map[string]*UserInternal // in-memory fallback
+	tokens       map[string]string        // in-memory fallback
+	otps         map[string]OTPRecord     // in-memory fallback
 }
 
-func NewAuthService(database *sql.DB) *AuthService {
+func parseGoogleIDToken(credential string) (email string, name string) {
+	parts := strings.Split(credential, ".")
+	if len(parts) < 2 {
+		return "", ""
+	}
+	payloadSegment := parts[1]
+	// Fix base64 padding
+	switch len(payloadSegment) % 4 {
+	case 2:
+		payloadSegment += "=="
+	case 3:
+		payloadSegment += "="
+	}
+	payloadBytes, err := base64.URLEncoding.DecodeString(payloadSegment)
+	if err != nil {
+		payloadBytes, err = base64.RawURLEncoding.DecodeString(parts[1])
+		if err != nil {
+			return "", ""
+		}
+	}
+	var claims struct {
+		Email string `json:"email"`
+		Name  string `json:"name"`
+	}
+	if err := json.Unmarshal(payloadBytes, &claims); err == nil {
+		return claims.Email, claims.Name
+	}
+	return "", ""
+}
+
+func NewAuthService(database *sql.DB, emailService *EmailService) *AuthService {
 	s := &AuthService{
-		db:     database,
-		users:  make(map[string]*UserInternal),
-		tokens: make(map[string]string),
-		otps:   make(map[string]OTPRecord),
+		db:           database,
+		emailService: emailService,
+		users:        make(map[string]*UserInternal),
+		tokens:       make(map[string]string),
+		otps:         make(map[string]OTPRecord),
 	}
 
 	// Seed demo account in memory fallback
@@ -247,11 +280,22 @@ func (s *AuthService) Login(req models.LoginRequest) (*models.AuthResponse, erro
 func (s *AuthService) GoogleAuth(req models.GoogleAuthRequest) (*models.AuthResponse, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	name := strings.TrimSpace(req.Name)
+
+	if req.Credential != "" && (email == "" || name == "") {
+		parsedEmail, parsedName := parseGoogleIDToken(req.Credential)
+		if email == "" {
+			email = strings.ToLower(strings.TrimSpace(parsedEmail))
+		}
+		if name == "" {
+			name = strings.TrimSpace(parsedName)
+		}
+	}
+
 	if email == "" {
-		email = "user_" + generateRandomToken()[:8] + "@google.com"
+		return nil, fmt.Errorf("invalid or unauthenticated Google OAuth payload: email missing")
 	}
 	if name == "" {
-		name = "Google User"
+		name = strings.Split(email, "@")[0]
 	}
 
 	if s.db != nil {
@@ -373,13 +417,7 @@ func (s *AuthService) RequestOTP(emailInput string) (string, error) {
 	expiresAt := time.Now().Add(10 * time.Minute)
 
 	if s.db != nil {
-		var exists bool
-		err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)", email).Scan(&exists)
-		if err != nil || !exists {
-			return "", fmt.Errorf("no account registered with this email")
-		}
-
-		_, err = s.db.Exec(`
+		_, err := s.db.Exec(`
 			INSERT INTO otps (email, otp, expires_at) VALUES ($1, $2, $3)
 			ON CONFLICT (email) DO UPDATE SET otp = EXCLUDED.otp, expires_at = EXCLUDED.expires_at`,
 			email, otp, expiresAt)
@@ -387,7 +425,11 @@ func (s *AuthService) RequestOTP(emailInput string) (string, error) {
 			return "", fmt.Errorf("failed to save OTP: %w", err)
 		}
 
-		log.Printf("📧 [OTP SENT] Sent OTP %s to email: %s", otp, email)
+		if s.emailService != nil {
+			_ = s.emailService.SendOTPEmail(email, otp)
+		} else {
+			log.Printf("📧 [OTP SENT] Sent OTP %s to email: %s", otp, email)
+		}
 		return otp, nil
 	}
 
@@ -395,16 +437,16 @@ func (s *AuthService) RequestOTP(emailInput string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, exists := s.users[email]; !exists {
-		return "", fmt.Errorf("no account registered with this email")
-	}
-
 	s.otps[email] = OTPRecord{
 		OTP:       otp,
 		ExpiresAt: expiresAt,
 	}
 
-	log.Printf("📧 [OTP SENT] Sent OTP %s to email: %s", otp, email)
+	if s.emailService != nil {
+		_ = s.emailService.SendOTPEmail(email, otp)
+	} else {
+		log.Printf("📧 [OTP SENT] Sent OTP %s to email: %s", otp, email)
+	}
 	return otp, nil
 }
 
@@ -429,9 +471,21 @@ func (s *AuthService) ResetPassword(req models.OTPVerifyRequest) error {
 			return fmt.Errorf("invalid or expired OTP code")
 		}
 
-		_, err = s.db.Exec("UPDATE users SET password = $1 WHERE email = $2", req.NewPassword, email)
-		if err != nil {
-			return fmt.Errorf("failed to update password: %w", err)
+		var exists bool
+		_ = s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)", email).Scan(&exists)
+		if exists {
+			_, err = s.db.Exec("UPDATE users SET password = $1 WHERE email = $2", req.NewPassword, email)
+			if err != nil {
+				return fmt.Errorf("failed to update password: %w", err)
+			}
+		} else {
+			userID := fmt.Sprintf("usr_%s", generateRandomToken()[:10])
+			userName := strings.Split(email, "@")[0]
+			_, err = s.db.Exec("INSERT INTO users (id, name, email, password, provider, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
+				userID, userName, email, req.NewPassword, "email", time.Now())
+			if err != nil {
+				return fmt.Errorf("failed to create account: %w", err)
+			}
 		}
 
 		_, _ = s.db.Exec("DELETE FROM otps WHERE email = $1", email)
@@ -449,10 +503,21 @@ func (s *AuthService) ResetPassword(req models.OTPVerifyRequest) error {
 
 	user, exists := s.users[email]
 	if !exists {
-		return fmt.Errorf("user not found")
+		user = &UserInternal{
+			ID:                   fmt.Sprintf("usr_%s", generateRandomToken()[:10]),
+			Name:                 strings.Split(email, "@")[0],
+			Email:                email,
+			Password:             req.NewPassword,
+			Provider:             "email",
+			CreatedAt:            time.Now(),
+			SavedAnswers:         []models.QuestionAnswer{},
+			SavedRecommendations: []models.SavedRecommendation{},
+		}
+		s.users[email] = user
+	} else {
+		user.Password = req.NewPassword
 	}
 
-	user.Password = req.NewPassword
 	delete(s.otps, email)
 	return nil
 }
