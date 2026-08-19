@@ -6,7 +6,22 @@ import { QUESTIONS, recommend, whyMatches, type Answers } from "./recommend";
 import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
+  ClipboardCheck,
+  History,
+  Loader2,
+  LogOut,
+  Play,
+  Search,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import { ExplainHint } from "@/components/ui/ExplainHint";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -50,6 +65,7 @@ function ProfilePage() {
   const [isSavingAnswers, setIsSavingAnswers] = useState(false);
   const [currentRecResult, setCurrentRecResult] = useState<AIResult | null>(null);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [historyQuery, setHistoryQuery] = useState("");
 
   useEffect(() => {
     if (user?.savedAnswers && user.savedAnswers.length > 0) {
@@ -180,34 +196,40 @@ function ProfilePage() {
   const memberSince = user.createdAt
     ? new Date(user.createdAt).toLocaleDateString("en-IN", { month: "short", year: "numeric" })
     : "Recent";
+  const answeredCount = Object.values(profileAnswers).filter(Boolean).length;
+  const profileProgress = Math.round((answeredCount / QUESTIONS.length) * 100);
+  const savedRecommendations = user.savedRecommendations || [];
+  const latestRecommendation = savedRecommendations[0];
+  const filteredRecommendations = savedRecommendations.filter((rec) =>
+    `${rec.headline} ${rec.summary}`.toLowerCase().includes(historyQuery.toLowerCase().trim()),
+  );
 
   return (
     <SiteLayout>
-      <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
 
         {/* User Account Header */}
-        <div className="rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 sm:p-8 shadow-sm transition-all">
+        <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card">
+          <div className="bg-gradient-hero p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
             <div className="flex items-center gap-4">
-              <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-neutral-900 dark:bg-neutral-100 text-xl font-bold text-white dark:text-neutral-900 shadow-sm">
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-foreground text-xl font-bold text-background shadow-sm">
                 {user.name ? user.name.charAt(0).toUpperCase() : "U"}
               </div>
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-neutral-100 tracking-tight">
+                  <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
                     {user.name}
                   </h1>
-                  <span className="rounded-full bg-neutral-100 dark:bg-neutral-800 px-2.5 py-0.5 text-[11px] font-medium text-neutral-600 dark:text-neutral-400 capitalize">
+                  {/* <span className="rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-medium text-accent-foreground capitalize">
                     {user.provider}
-                  </span>
+                  </span> */}
                 </div>
-                <p className="mt-0.5 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
+                <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
                   {user.email}
                 </p>
-                <div className="mt-2 flex items-center gap-3 text-xs text-neutral-400 dark:text-neutral-500">
+                <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                   <span>Member since {memberSince}</span>
-                  <span>•</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">Private Account</span>
                 </div>
               </div>
             </div>
@@ -216,15 +238,85 @@ function ProfilePage() {
               onClick={handleLogout}
               variant="outline"
               size="sm"
-              className="self-start sm:self-auto rounded-xl text-xs text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors"
+              className="self-start rounded-xl border-border text-xs text-muted-foreground hover:bg-accent hover:text-foreground sm:self-auto"
             >
-              Log Out
+              <LogOut className="size-3.5" /> Log out
+            </Button>
+          </div>
+          </div>
+
+          <div className="grid divide-y border-t border-border/70 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <div className="p-5">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <ClipboardCheck className="size-3.5 text-brand" /> Profile readiness
+                <ExplainHint>Answering more questions helps us make the recommendation more relevant. You can still generate a plan with partial answers.</ExplainHint>
+              </div>
+              <div className="mt-2 flex items-end justify-between gap-3">
+                <span className="text-2xl font-bold">{profileProgress}%</span>
+                <span className="text-xs text-muted-foreground">{answeredCount}/{QUESTIONS.length} answered</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-gradient-brand" style={{ width: `${profileProgress}%` }} />
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <History className="size-3.5 text-brand" /> Saved plans
+              </div>
+              <div className="mt-2 text-2xl font-bold">{savedRecommendations.length}</div>
+              <p className="mt-1 text-xs text-muted-foreground">Your previous decision snapshots.</p>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <ShieldCheck className="size-3.5 text-brand" /> Data promise
+              </div>
+              <div className="mt-2 text-sm font-semibold">Private by default</div>
+              <p className="mt-1 text-xs text-muted-foreground">Your answers are used to build your plan.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+          <div className="rounded-3xl border border-brand/25 bg-gradient-brand-soft p-6 shadow-soft">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-deep">
+                  <Sparkles className="size-3.5" /> Your next best step
+                </div>
+                <h2 className="mt-3 text-xl font-bold">{latestRecommendation ? "Review your latest plan" : "Build your first investment path"}</h2>
+                <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+                  {latestRecommendation
+                    ? latestRecommendation.headline
+                    : "Answer a few questions and get a clear starting point, with reasons and watch-outs."}
+                </p>
+              </div>
+              <BarChart3 className="hidden size-8 text-brand sm:block" />
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button onClick={() => document.getElementById("profile-questionnaire")?.scrollIntoView({ behavior: "smooth" })} className="rounded-full bg-gradient-brand text-white">
+                {latestRecommendation ? "Update my answers" : "Complete my profile"} <ArrowRight className="size-4" />
+              </Button>
+              {latestRecommendation && (
+                <Button variant="outline" onClick={() => setExpandedId(latestRecommendation.id)} className="rounded-full border-brand/30">
+                  View latest plan
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-border/70 bg-card p-6 shadow-soft">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <CalendarDays className="size-3.5 text-brand" /> Plan rhythm
+            </div>
+            <h2 className="mt-3 text-lg font-bold">Review, don’t react.</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Use your plan as a checkpoint when your goal, time horizon, or comfort with risk changes.</p>
+            <Button asChild variant="ghost" className="mt-4 rounded-full px-0 text-brand-deep hover:bg-transparent hover:underline">
+              <Link to="/recommend">Retake the decision check <ArrowRight className="size-4" /></Link>
             </Button>
           </div>
         </div>
 
         {/* Profile Questionnaire Section */}
-        <div className="mt-8 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 sm:p-8 shadow-sm">
+        <div id="profile-questionnaire" className="mt-8 rounded-3xl border border-border/70 bg-card p-6 shadow-card sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-neutral-100 dark:border-neutral-800">
             <div>
               <span className="text-[11px] font-semibold tracking-wider text-brand uppercase">
@@ -276,11 +368,7 @@ function ProfilePage() {
                       </span>
                     )}
                   </div>
-                  {q.hint && (
-                    <p className="mt-0.5 text-[11px] text-neutral-500 dark:text-neutral-400">
-                      {q.hint}
-                    </p>
-                  )}
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{q.subtitle}</p>
 
                   <div className="mt-3.5 flex flex-wrap gap-2">
                     {q.options.map((opt) => {
@@ -407,18 +495,32 @@ function ProfilePage() {
 
         {/* Saved Recommendation History */}
         <div className="mt-10">
-          <div className="pb-4 border-b border-neutral-200/80 dark:border-neutral-800 mb-6">
-            <h2 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-neutral-100 tracking-tight">
-              Recommendation History
-            </h2>
-            <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-              Past recommendation runs saved.
-            </p>
+          <div className="mb-6 flex flex-col justify-between gap-4 border-b border-border/70 pb-4 sm:flex-row sm:items-end">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold tracking-tight sm:text-xl">Decision history</h2>
+                <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">{savedRecommendations.length}</span>
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Keep an audit trail of how your thinking changes over time.
+              </p>
+            </div>
+            {savedRecommendations.length > 0 && (
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={historyQuery}
+                  onChange={(event) => setHistoryQuery(event.target.value)}
+                  placeholder="Search saved plans"
+                  className="h-9 w-full rounded-full border border-border bg-background pl-9 pr-3 text-xs outline-none transition-colors placeholder:text-muted-foreground focus:border-brand"
+                />
+              </div>
+            )}
           </div>
 
-          {user.savedRecommendations && user.savedRecommendations.length > 0 ? (
+          {savedRecommendations.length > 0 ? (
             <div className="space-y-4">
-              {user.savedRecommendations.map((rec) => {
+              {filteredRecommendations.map((rec) => {
                 const isExpanded = expandedId === rec.id;
                 const formattedDate = new Date(rec.date).toLocaleDateString("en-IN", {
                   day: "numeric",
@@ -508,6 +610,11 @@ function ProfilePage() {
                   </div>
                 );
               })}
+              {filteredRecommendations.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                  No saved plans match “{historyQuery}”.
+                </div>
+              )}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800 p-8 text-center text-xs text-neutral-500 dark:text-neutral-400">

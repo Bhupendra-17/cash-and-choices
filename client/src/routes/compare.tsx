@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { SvgRadarChart } from "@/components/ui/svg-charts";
 import { CheckCircle2, Scale, XCircle } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { ExplainHint } from "@/components/ui/ExplainHint";
 import { CATEGORIES, PRODUCTS, labelFor, scoreFor, type Category } from "@/data/products";
 import { cn } from "@/lib/utils";
 
@@ -125,7 +126,10 @@ function ComparePage() {
 
             <div className="mt-6 grid gap-6 lg:grid-cols-5">
               <div className="lg:col-span-3 rounded-3xl border border-border/70 bg-card p-6 shadow-card">
-                <h2 className="text-lg font-semibold">Decision score radar</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-semibold">Decision score radar</h2>
+                  <ExplainHint>Each score is a simple 0–100 view of a trade-off. Use it to ask better questions, not as a guarantee.</ExplainHint>
+                </div>
                 <p className="text-sm text-muted-foreground">Higher is better on every axis.</p>
                 <div className="mt-4 h-80">
                   <SvgRadarChart

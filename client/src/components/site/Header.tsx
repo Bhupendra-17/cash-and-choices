@@ -7,12 +7,10 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const nav = [
-  { to: "/recommend", label: "Recommendations" },
   { to: "/funds", label: "Funds" },
   { to: "/funds/compare", label: "Compare" },
-  { to: "/charges", label: "Hidden Charges" },
+  { to: "/charges", label: "Learn" },
   { to: "/calculators", label: "Calculators" },
-  { to: "/privacy", label: "Privacy" },
 ] as const;
 
 import { useAuth } from "@/lib/auth-context";
@@ -46,7 +44,7 @@ export function Header() {
             <Button asChild variant="outline" className="rounded-full flex items-center gap-2 border-border">
               <Link to="/profile">
                 <UserIcon className="size-4 text-brand" />
-                <span className="max-w-[100px] truncate">{user.name.split(" ")[0]}</span>
+                <span className="max-w-25 truncate">{user.name.split(" ")[0]}</span>
               </Link>
             </Button>
           ) : (
@@ -55,7 +53,7 @@ export function Header() {
             </Button>
           )}
           <Button asChild className="rounded-full bg-gradient-brand text-white hover:opacity-95 shadow-glow">
-            <Link to="/recommend">Try free</Link>
+            <Link to="/recommend">Start my path</Link>
           </Button>
         </div>
         <div className="flex items-center gap-2 md:hidden">
@@ -107,7 +105,7 @@ export function Header() {
             )}
             <Button asChild className="mt-2 w-full rounded-full bg-gradient-brand text-white">
               <Link to="/recommend" onClick={() => setOpen(false)}>
-                Try free
+                Start my path
               </Link>
             </Button>
           </div>

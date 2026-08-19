@@ -2,6 +2,7 @@ import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { SvgAreaChart, SvgPieChart } from "@/components/ui/svg-charts";
 import { Info } from "lucide-react";
+import { ExplainHint } from "@/components/ui/ExplainHint";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -120,7 +121,10 @@ function CalculatorForm({ type }: { type: CalcType }) {
     <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
       {/* Inputs Sidebar */}
       <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold capitalize tracking-tight">{type} Inputs</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold capitalize tracking-tight">{type} Inputs</h2>
+          <ExplainHint>Change these assumptions to see how the outcome changes. They are estimates, not promises.</ExplainHint>
+        </div>
         <div className="mt-4 space-y-5">
           {usesMonthly ? (
             <Field label="Monthly amount" value={monthly} onChange={setMonthly} suffix="₹" min={500} max={200000} step={500} />
@@ -128,7 +132,15 @@ function CalculatorForm({ type }: { type: CalcType }) {
             <Field label={amountLabel} value={amount} onChange={setAmount} suffix="₹" min={1000} max={type === "ppf" ? 150000 : 10000000} step={1000} />
           )}
           <Field label="Duration (years)" value={years} onChange={setYears} min={type === "ppf" ? 15 : 1} max={40} step={1} />
-          <Field label={type === "gold" ? "Expected appreciation %" : "Expected return %"} value={rate} onChange={setRate} step={0.1} min={0.5} max={30} />
+          <Field
+            label={type === "gold" ? "Expected appreciation %" : "Expected return %"}
+            help="Use a cautious estimate. A higher number makes the result look better but is not guaranteed."
+            value={rate}
+            onChange={setRate}
+            step={0.1}
+            min={0.5}
+            max={30}
+          />
           
           {usesSlab && (
             <div>
@@ -342,6 +354,7 @@ function CalculatorForm({ type }: { type: CalcType }) {
 
 function Field({
   label,
+  help,
   value,
   onChange,
   min,
@@ -350,6 +363,7 @@ function Field({
   suffix,
 }: {
   label: string;
+  help?: string;
   value: number;
   onChange: (n: number) => void;
   min: number;
@@ -359,7 +373,10 @@ function Field({
 }) {
   return (
     <div>
-      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <div className="flex items-center gap-1">
+        <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</Label>
+        {help && <ExplainHint>{help}</ExplainHint>}
+      </div>
       <div className="mt-2 flex items-center gap-2">
         {suffix && <span className="text-muted-foreground text-sm font-medium">{suffix}</span>}
         <Input

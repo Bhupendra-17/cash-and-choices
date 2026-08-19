@@ -20,6 +20,7 @@ import {
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { ExplainHint } from "@/components/ui/ExplainHint";
 import { PRODUCTS, labelFor, scoreFor, type Product } from "@/data/products";
 import { cn } from "@/lib/utils";
 
@@ -799,10 +800,10 @@ function RecommendPage() {
             <h2 className="mt-3 text-xl font-bold leading-snug sm:text-2xl">{q.title}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{q.subtitle}</p>
 
-            {/* Educational Note */}
-            <div className="mt-4 flex items-start gap-2 rounded-xl bg-accent/70 px-4 py-3 text-xs text-muted-foreground">
-              <Info className="mt-0.5 size-3.5 shrink-0 text-brand" />
-              <span>{q.educationalNote}</span>
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-accent/70 px-4 py-2.5 text-xs text-muted-foreground">
+              <Info className="size-3.5 shrink-0 text-brand" />
+              <span>This answer helps us choose the right path for you.</span>
+              <ExplainHint> {q.educationalNote} </ExplainHint>
             </div>
 
             {/* Options Grid */}
@@ -1012,7 +1013,7 @@ function FinancialProfileAnalysis({ profile }: { profile: FinancialProfile }) {
       {/* Persona + Health Score Row */}
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Investor Persona */}
-        <div className={cn("rounded-3xl border bg-gradient-to-br p-6 shadow-soft", persona.gradient)}>
+        <div className={cn("rounded-3xl border bg-linear-to-br p-6 shadow-soft", persona.gradient)}>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             <Target className="size-3.5" />
             Your Investor Persona

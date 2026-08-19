@@ -11,6 +11,8 @@ import {
   ArrowRight,
   CheckCircle2,
   XCircle,
+  Compass,
+  BookOpenCheck,
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -145,12 +147,12 @@ function LandingPage() {
               Privacy is the feature
             </div>
             <h1 className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-              Make smarter financial decisions.{" "}
+              Find your next money move.{" "}
               <span className="text-gradient-brand">Privately.</span>
             </h1>
             <p className="mt-5 max-w-xl text-lg text-muted-foreground">
-              No bank logins. No PAN. No portfolio uploads. Just honest questionnaires,
-              zero-affiliate recommendations and calculators that respect your data.
+              Start with your goal, understand your trade-offs, then choose with confidence.
+              No bank login, PAN or portfolio upload required.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button asChild size="lg" className="rounded-full bg-gradient-brand text-white shadow-glow hover:opacity-95">
@@ -225,6 +227,59 @@ function LandingPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* DECISION PATH */}
+      <section className="border-y border-border/70 bg-surface">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
+                <Compass className="size-3.5" /> Your decision path
+              </div>
+              <h2 className="mt-4 text-3xl font-bold sm:text-4xl">Less searching. More knowing.</h2>
+              <p className="mt-3 text-muted-foreground">
+                Cash&amp;Choices turns a broad investment question into a few clear next steps.
+                You can pause, learn a term, and continue whenever you are ready.
+              </p>
+            </div>
+            <Button asChild className="w-fit rounded-full bg-gradient-brand text-white shadow-glow">
+              <Link to="/recommend">Start with my goal <ArrowRight className="ml-1 size-4" /></Link>
+            </Button>
+          </div>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {[
+              {
+                number: "01",
+                icon: Sparkles,
+                title: "Tell us what matters",
+                body: "Answer a short set of private questions about your goal, time and comfort with risk.",
+              },
+              {
+                number: "02",
+                icon: BookOpenCheck,
+                title: "Understand your fit",
+                body: "Get a simple investor profile, the reason behind each match, and the risks to watch.",
+              },
+              {
+                number: "03",
+                icon: Scale,
+                title: "Check before you choose",
+                body: "Use a calculator, compare two options, or unpack a charge before taking action.",
+              },
+            ].map((step) => (
+              <div key={step.number} className="rounded-3xl border border-border/70 bg-card p-6 shadow-soft">
+                <div className="flex items-center justify-between">
+                  <step.icon className="size-6 text-brand" />
+                  <span className="text-xs font-semibold tracking-widest text-muted-foreground">{step.number}</span>
+                </div>
+                <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
