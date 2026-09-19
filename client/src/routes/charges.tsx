@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { EyeOff, Info, HelpCircle, Calendar, Coins, Ban } from "lucide-react";
+import { EyeOff, Info, HelpCircle, Calendar, Coins, Ban, ChevronDown } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { INVESTMENT_CHARGES } from "@/data/investmentCharges";
 import { cn } from "@/lib/utils";
@@ -29,7 +30,6 @@ export const Route = createFileRoute("/charges")({
 
 function ChargesPage() {
   const [openId, setOpenId] = useState<string | null>(INVESTMENT_CHARGES[0].id);
-  const open = openId ? INVESTMENT_CHARGES.find((c) => c.id === openId) : null;
 
   return (
     <SiteLayout>
@@ -48,50 +48,74 @@ function ChargesPage() {
           </p>
         </div>
 
-        <div className="mt-8 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {INVESTMENT_CHARGES.map((c) => {
             const isOpen = openId === c.id;
             return (
-              <button
+              <div
                 key={c.id}
-                onClick={() => setOpenId(isOpen ? null : c.id)}
                 className={cn(
-                  "text-left rounded-3xl border border-border bg-card p-5 shadow-soft transition-all",
-                  "hover:-translate-y-0.5 hover:shadow-glow",
-                  isOpen && "ring-2 ring-brand/40",
+                  "group relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all",
+                  "hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-glow",
+                  isOpen && "sm:col-span-2 xl:col-span-3 ring-2 ring-brand/40",
                 )}
               >
-                <h3 className="font-semibold">{c.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{c.short}</p>
-                <div className="mt-3 text-xs font-medium text-brand">
-                  {isOpen ? "Hide details" : "See details →"}
-                </div>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenId(isOpen ? null : c.id)}
+                  aria-expanded={isOpen}
+                  aria-controls={isOpen ? `charge-details-${c.id}` : undefined}
+                  className="flex min-h-40 w-full items-start justify-between gap-4 p-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset sm:min-h-44 sm:p-6"
+                >
+                  <span className="min-w-0">
+                    <span className="mb-4 inline-flex size-9 items-center justify-center rounded-xl bg-brand/10 text-sm font-bold text-brand">
+                      {String(INVESTMENT_CHARGES.indexOf(c) + 1).padStart(2, "0")}
+                    </span>
+                    <span className="block text-base font-semibold leading-tight sm:text-lg">{c.name}</span>
+                    <span className="mt-2 block max-w-sm text-sm leading-6 text-muted-foreground">{c.short}</span>
+                  </span>
+                  <ChevronDown
+                    aria-hidden="true"
+                    className={cn(
+                      "mt-1 size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:text-brand",
+                      isOpen && "rotate-180 text-brand",
+                    )}
+                  />
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      id={`charge-details-${c.id}`}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      className="border-t border-brand/20"
+                    >
+                      <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
+                        {[
+                          { Icon: HelpCircle, k: "What is this charge?", v: c.what },
+                          { Icon: Info, k: "Why is it deducted?", v: c.why },
+                          { Icon: Calendar, k: "When is it deducted?", v: c.when },
+                          { Icon: Coins, k: "How much will it cost?", v: c.howMuch },
+                          { Icon: Ban, k: "Can it be avoided?", v: c.canAvoid },
+                        ].map(({ Icon, k, v }) => (
+                          <div key={k} className="min-w-0 rounded-xl border border-border bg-background/70 p-4 sm:p-5">
+                            <div className="flex items-center gap-2 text-sm font-semibold">
+                              <Icon className="size-4 text-brand" /> {k}
+                            </div>
+                            <p className="mt-1.5 text-sm text-muted-foreground">{v}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             );
           })}
         </div>
-
-        {open && (
-          <div className="mt-6 rounded-3xl border border-brand/30 bg-brand/5 p-6">
-            <h2 className="text-xl font-semibold">{open.name}</h2>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {[
-                { Icon: HelpCircle, k: "What is this charge?", v: open.what },
-                { Icon: Info, k: "Why is it deducted?", v: open.why },
-                { Icon: Calendar, k: "When is it deducted?", v: open.when },
-                { Icon: Coins, k: "How much will it cost?", v: open.howMuch },
-                { Icon: Ban, k: "Can it be avoided?", v: open.canAvoid },
-              ].map(({ Icon, k, v }) => (
-                <div key={k} className="rounded-2xl border border-border bg-background p-4">
-                  <div className="flex items-center gap-2 text-sm font-semibold">
-                    <Icon className="size-4 text-brand" /> {k}
-                  </div>
-                  <p className="mt-1.5 text-sm text-muted-foreground">{v}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
     </SiteLayout>
   );

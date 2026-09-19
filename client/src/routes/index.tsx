@@ -180,51 +180,19 @@ function LandingPage() {
 
           {/* Hero visual */}
           <div className="lg:col-span-5">
-            <div className="relative">
-              <div className="absolute -inset-8 bg-gradient-brand opacity-20 blur-3xl" aria-hidden />
-              <div className="relative rounded-3xl border border-border/60 bg-white/80 p-6 shadow-card backdrop-blur">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Wallet className="size-4 text-brand" />
-                    Decision score
-                  </div>
-                  <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">
-                    Live preview
-                  </span>
+            <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-white/70 shadow-card backdrop-blur">
+              <img
+                src="/poster1.jpg"
+                alt="A Cash and Choices investor reviewing transparency and hidden cost scores"
+                className="aspect-[4/3] w-full object-cover"
+              />
+              <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/60 bg-white/85 p-4 shadow-soft backdrop-blur-sm">
+                <div className="flex items-center gap-2 text-sm font-semibold text-brand-deep">
+                  <Wallet className="size-4" /> Clear scores before you choose
                 </div>
-                <div className="mt-6 grid grid-cols-2 gap-3">
-                  {[
-                    { label: "Transparency", v: 92 },
-                    { label: "Hidden cost", v: 90 },
-                    { label: "Tax efficient", v: 70 },
-                    { label: "Liquidity", v: 88 },
-                  ].map((r) => (
-                    <div key={r.label} className="rounded-2xl border border-border/70 p-3">
-                      <div className="text-xs text-muted-foreground">{r.label}</div>
-                      <div className="mt-1 flex items-baseline gap-1">
-                        <span className="text-2xl font-semibold">{r.v}</span>
-                        <span className="text-xs text-muted-foreground">/100</span>
-                      </div>
-                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-gradient-brand"
-                          style={{ width: `${r.v}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-5 flex items-center justify-between rounded-2xl bg-gradient-brand-soft p-4">
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-brand-deep">
-                      Nifty 50 Index Fund
-                    </div>
-                    <div className="text-lg font-semibold">Overall score 85/100</div>
-                  </div>
-                  <div className="rounded-full bg-white px-3 py-2 text-sm font-semibold text-brand-deep shadow-soft">
-                    A+
-                  </div>
-                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Compare transparency, hidden costs and real trade-offs in one place.
+                </p>
               </div>
             </div>
           </div>
@@ -354,16 +322,18 @@ function LandingPage() {
                 </Button>
               </div>
             </div>
-            <div className="relative overflow-hidden bg-gradient-brand p-8 sm:p-12">
-              <div className="absolute inset-0 opacity-30" aria-hidden style={{ backgroundImage: "radial-gradient(circle at 30% 20%, white, transparent 40%)" }} />
-              <div className="relative flex h-full flex-col justify-between text-white">
-                <ShieldCheck className="size-10" />
-                <div>
-                  <p className="text-2xl font-semibold leading-snug">
-                    "You shouldn't have to hand over your bank login to compare a mutual fund."
-                  </p>
-                  <p className="mt-4 text-white/80">— The reason we exist.</p>
-                </div>
+            <div className="relative min-h-[22rem] overflow-hidden bg-[#fce7ef] sm:min-h-[28rem] lg:min-h-full">
+              <img
+                src="/poster4.jpg"
+                alt="Person using a laptop privately while making financial decisions"
+                className="absolute inset-0 size-full object-cover object-center"
+              />
+              <div className="absolute inset-x-5 bottom-5 rounded-2xl border border-white/70 bg-white/85 p-5 shadow-soft backdrop-blur-sm sm:inset-x-8 sm:bottom-8 sm:p-6">
+                <ShieldCheck className="size-7 text-brand-deep" />
+                <p className="mt-3 text-lg font-semibold leading-snug text-foreground sm:text-xl">
+                  "You shouldn't have to hand over your bank login to compare a mutual fund."
+                </p>
+                <p className="mt-3 text-sm text-muted-foreground">The reason we exist.</p>
               </div>
             </div>
           </div>

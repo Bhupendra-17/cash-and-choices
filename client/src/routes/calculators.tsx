@@ -80,6 +80,22 @@ function CalculatorsLayout() {
 
         {isHub ? (
           <>
+            <div className="mt-8 grid overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card lg:grid-cols-[1fr_1.25fr]">
+              <div className="flex flex-col justify-center p-6 sm:p-8">
+                <div className="text-xs font-semibold uppercase tracking-wider text-brand-deep">
+                  Plan with numbers, not guesswork
+                </div>
+                <h2 className="mt-2 text-2xl font-bold">See what your money can do.</h2>
+                <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+                  Model growth, taxes and inflation before you commit. Every result stays on your device.
+                </p>
+              </div>
+              <img
+                src="/poster3.jpg"
+                alt="Illustration of a calculator, rupee, growth chart and Nifty fund"
+                className="h-full min-h-52 w-full object-cover object-center"
+              />
+            </div>
             <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {CALCULATORS.map((c) => (
                 <Link

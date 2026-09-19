@@ -88,6 +88,14 @@ function PrivacyPage() {
           </div>
         </div>
 
+        <div className="mt-8 overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card">
+          <img
+            src="/poster2.jpg"
+            alt="A couple viewing private and secure financial health information"
+            className="aspect-[16/7] w-full object-cover object-center"
+          />
+        </div>
+
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {promises.map((p) => (
             <div key={p.title} className="rounded-3xl border border-border/70 bg-card p-6 shadow-soft">
