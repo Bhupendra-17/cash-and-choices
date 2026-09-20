@@ -33,6 +33,7 @@ export function Header() {
               to={n.to}
               className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               activeProps={{ className: "bg-accent text-accent-foreground" }}
+              activeOptions={{ exact: n.to === "/funds" }}
             >
               {n.label}
             </Link>

@@ -18,6 +18,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { FUND_CATEGORIES, MUTUAL_FUNDS, fundCategoryLabel, type FundCategory, type MutualFund } from "@/data/mutualFunds";
+import { AnimatedCard } from "@/components/AnimatedCard";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export const Route = createFileRoute("/funds")({
   head: () => ({
@@ -31,29 +33,30 @@ export const Route = createFileRoute("/funds")({
 
 type SchemeListItem = { schemeCode: number; schemeName: string };
 
-type NavValue = { Date: string; Nav: number };
-type HistoryPoint = { Date: string; Nav: number };
+type NavValue = { date: string; nav: number };
+type HistoryPoint = { date: string; nav: number };
 type FundDetail = {
-  Meta: {
+  meta: {
     fund_house: string;
     scheme_type: string;
     scheme_category: string;
     scheme_code: number;
     scheme_name: string;
   };
-  Latest: NavValue;
-  Change1m: number | null;
-  Change6m: number | null;
-  Change1y: number | null;
-  Change3y: number | null;
-  High52w: NavValue | null;
-  Low52w: NavValue | null;
-  DrawdownFromHigh: number | null;
-  History: HistoryPoint[];
+  latest: NavValue;
+  change1m: number | null;
+  change6m: number | null;
+  change1y: number | null;
+  change3y: number | null;
+  high52w: NavValue | null;
+  low52w: NavValue | null;
+  drawdownFromHigh: number | null;
+  history: HistoryPoint[];
 };
 
 function FundsPage() {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 500);
   const [selectedCode, setSelectedCode] = useState<number | null>(null);
   const [selectedFund, setSelectedFund] = useState<MutualFund | null>(null);
   const [selectedFeaturedId, setSelectedFeaturedId] = useState(MUTUAL_FUNDS[0].id);
@@ -84,14 +87,14 @@ function FundsPage() {
   }, []);
 
   const { data: searchResults = [], isFetching } = useQuery({
-    queryKey: ["fundsSearch", query],
+    queryKey: ["fundsSearch", debouncedQuery],
     queryFn: async () => {
-      if (query.length < 2) return [];
-      const res = await apiFetch(`/api/funds/search?q=${encodeURIComponent(query)}`);
+      if (debouncedQuery.length < 2) return [];
+      const res = await apiFetch(`/api/funds/search?q=${encodeURIComponent(debouncedQuery)}`);
       if (!res.ok) throw new Error("Search failed");
       return res.json() as Promise<SchemeListItem[]>;
     },
-    enabled: query.length >= 2,
+    enabled: debouncedQuery.length >= 2,
   });
 
   return (
@@ -118,7 +121,7 @@ function FundsPage() {
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.45fr_0.85fr]">
-          <div className="rounded-3xl border border-border/70 bg-card p-6 shadow-card sm:p-7">
+          <AnimatedCard delay={0.1} className="rounded-3xl border border-border/70 bg-card p-6 shadow-card sm:p-7">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
               <div>
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-deep">
@@ -160,9 +163,9 @@ function FundsPage() {
             </div>
 
             {selectedFeatured && <FeaturedFundSnapshot fund={selectedFeatured} />}
-          </div>
+          </AnimatedCard>
 
-          <div className="rounded-3xl border border-border/70 bg-surface p-6 shadow-soft sm:p-7">
+          <AnimatedCard delay={0.2} className="rounded-3xl border border-border/70 bg-surface p-6 shadow-soft sm:p-7">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <TrendingUp className="size-3.5 text-brand" /> Popular categories
             </div>
@@ -187,7 +190,7 @@ function FundsPage() {
             <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
               Categories describe the kind of exposure a fund gives you. They are not risk ratings.
             </p>
-          </div>
+          </AnimatedCard>
         </div>
 
         <div className="mt-12 max-w-2xl">
@@ -206,7 +209,8 @@ function FundsPage() {
           </div>
         </div>
 
-        <div className="mt-8 overflow-hidden rounded-3xl border border-border/70 bg-card shadow-soft">
+        {debouncedQuery.length < 2 && (
+          <AnimatedCard delay={0.3} className="mt-8 overflow-hidden rounded-3xl border border-border/70 bg-card shadow-soft">
           <div className="flex flex-col justify-between gap-3 border-b border-border/70 p-5 sm:flex-row sm:items-center sm:px-6">
             <div>
               <h2 className="text-lg font-bold">Funds at a glance</h2>
@@ -246,7 +250,8 @@ function FundsPage() {
               <div className="p-10 text-center text-sm text-muted-foreground">No curated funds match this search.</div>
             )}
           </div>
-        </div>
+        </AnimatedCard>
+        )}
 
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {query.length >= 2 && searchResults.length === 0 && !isFetching && (
@@ -259,19 +264,41 @@ function FundsPage() {
               Searching...
             </p>
           )}
-          {searchResults.map((f) => (
+          {[...searchResults]
+            .sort((a, b) => {
+              const aName = a.schemeName.toLowerCase();
+              const bName = b.schemeName.toLowerCase();
+              const q = debouncedQuery.toLowerCase();
+              
+              const aStarts = aName.startsWith(q);
+              const bStarts = bName.startsWith(q);
+              if (aStarts && !bStarts) return -1;
+              if (!aStarts && bStarts) return 1;
+
+              const aDirectGrowth = aName.includes("direct") && aName.includes("growth");
+              const bDirectGrowth = bName.includes("direct") && bName.includes("growth");
+              if (aDirectGrowth && !bDirectGrowth) return -1;
+              if (!aDirectGrowth && bDirectGrowth) return 1;
+
+              return a.schemeName.length - b.schemeName.length;
+            })
+            .map((f) => (
             <button
               key={f.schemeCode}
+              type="button"
               onClick={() => {
                 setSelectedCode(f.schemeCode);
                 setSelectedFund(null);
               }}
-              className="group flex flex-col rounded-3xl border border-border bg-card p-5 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-glow"
+              className="group flex flex-col rounded-3xl border border-border bg-card p-5 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:border-brand/50 hover:shadow-glow"
             >
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
                 Code: {f.schemeCode}
               </div>
               <h3 className="font-semibold group-hover:text-brand line-clamp-2">{f.schemeName}</h3>
+              <div className="mt-3 flex items-center gap-1 text-xs font-medium text-brand opacity-0 transition-opacity group-hover:opacity-100">
+                View details →
+              </div>
             </button>
           ))}
         </div>
@@ -340,7 +367,7 @@ function FeaturedFundSnapshot({ fund }: { fund: MutualFund }) {
     .join(" ");
 
   return (
-    <div className="mt-5 rounded-2xl border border-border/70 bg-background p-4">
+    <AnimatedCard delay={0.4} className="mt-5 rounded-2xl border border-border/70 bg-background p-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Selected snapshot</div>
@@ -375,7 +402,7 @@ function FeaturedFundSnapshot({ fund }: { fund: MutualFund }) {
         <span>Min SIP <strong className="text-foreground">₹{fund.minSip.toLocaleString("en-IN")}</strong></span>
         <span>Risk <strong className="text-foreground">{fund.risk}</strong></span>
       </div>
-    </div>
+    </AnimatedCard>
   );
 }
 
@@ -473,11 +500,11 @@ function FundDetailView({ code, onClose }: { code: number; onClose: () => void }
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: fund.Meta.scheme_name,
-          category: fund.Meta.scheme_category,
-          change1y: fund.Change1y,
-          change3y: fund.Change3y,
-          drawdownFromHigh: fund.DrawdownFromHigh,
+          name: fund.meta.scheme_name,
+          category: fund.meta.scheme_category,
+          change1y: fund.change1y,
+          change3y: fund.change3y,
+          drawdownFromHigh: fund.drawdownFromHigh,
         }),
       });
       if (!res.ok) throw new Error("Failed to get explanation");
@@ -486,21 +513,44 @@ function FundDetailView({ code, onClose }: { code: number; onClose: () => void }
   });
 
   if (isLoading) {
-    return <div className="flex h-full items-center justify-center p-6 text-muted-foreground">Loading details...</div>;
+    return <div className="flex h-full items-center justify-center p-6 text-muted-foreground">Loading details…</div>;
   }
-
   if (error || !fund) {
     return <div className="flex h-full items-center justify-center p-6 text-rose-500">Failed to load fund data.</div>;
   }
+
+  // Build NAV history chart
+  const navHistory = fund.history?.slice(-120) ?? [];
+  const navValues = navHistory.map((p) => p.nav);
+  const minNav = navValues.length ? Math.min(...navValues) : 0;
+  const maxNav = navValues.length ? Math.max(...navValues) : 1;
+  const W = 1000;
+  const H = 180;
+  const pts = navHistory.map((p, i) => {
+    const x = (i / Math.max(navHistory.length - 1, 1)) * W;
+    const y = H - ((p.nav - minNav) / (maxNav - minNav || 1)) * H;
+    return `${x},${y}`;
+  });
+  const svgPath = pts.length > 1 ? `M ${pts.join(" L ")}` : "";
+  const historyPositive = navHistory.length > 1
+    ? navHistory[navHistory.length - 1].nav >= navHistory[0].nav
+    : true;
+  const chartColor = historyPositive ? "#10b981" : "#f43f5e";
+
+  // 52w progress bar
+  const low52 = fund.low52w?.nav ?? 0;
+  const high52 = fund.high52w?.nav ?? 0;
+  const latestNav = fund.latest.nav;
+  const progress52 = high52 > low52 ? Math.min(100, Math.max(0, ((latestNav - low52) / (high52 - low52)) * 100)) : 50;
 
   return (
     <div className="p-6 sm:p-0">
       <SheetHeader className="mb-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <SheetTitle className="text-left text-xl leading-tight">{fund.Meta.scheme_name}</SheetTitle>
+            <SheetTitle className="text-left text-xl leading-tight">{fund.meta.scheme_name}</SheetTitle>
             <SheetDescription className="text-left mt-1">
-              {fund.Meta.fund_house} · {fund.Meta.scheme_category}
+              {fund.meta.fund_house} · {fund.meta.scheme_category}
             </SheetDescription>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0 -mr-2">
@@ -509,21 +559,58 @@ function FundDetailView({ code, onClose }: { code: number; onClose: () => void }
         </div>
       </SheetHeader>
 
+      {/* Key Metrics */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MetricBox label="Latest NAV" value={`₹${fund.Latest.Nav}`} sub={fund.Latest.Date} />
-        <MetricBox label="1Y Return" value={fund.Change1y ? `${fund.Change1y}%` : "N/A"} positive={fund.Change1y ? fund.Change1y >= 0 : undefined} />
-        <MetricBox label="3Y Return" value={fund.Change3y ? `${fund.Change3y}%` : "N/A"} positive={fund.Change3y ? fund.Change3y >= 0 : undefined} />
-        <MetricBox label="Drawdown" value={fund.DrawdownFromHigh ? `${fund.DrawdownFromHigh}%` : "N/A"} positive={fund.DrawdownFromHigh ? fund.DrawdownFromHigh >= 0 : undefined} />
+        <MetricBox label="Latest NAV" value={`₹${fund.latest.nav}`} sub={fund.latest.date} />
+        <MetricBox label="1Y Return" value={fund.change1y != null ? `${fund.change1y >= 0 ? "+" : ""}${fund.change1y}%` : "N/A"} positive={fund.change1y != null ? fund.change1y >= 0 : undefined} />
+        <MetricBox label="3Y Return" value={fund.change3y != null ? `${fund.change3y >= 0 ? "+" : ""}${fund.change3y}%` : "N/A"} positive={fund.change3y != null ? fund.change3y >= 0 : undefined} />
+        <MetricBox label="Drawdown" value={fund.drawdownFromHigh != null ? `${fund.drawdownFromHigh}%` : "N/A"} positive={fund.drawdownFromHigh != null ? fund.drawdownFromHigh >= 0 : undefined} />
       </div>
 
-      <div className="mt-8 rounded-3xl border bg-card p-6">
-        <div className="flex items-center gap-2 font-medium">
+      {/* NAV History Chart */}
+      {svgPath && (
+        <div className="mt-6 rounded-3xl border border-border/70 bg-card p-5">
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <div>
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <Activity className="size-4 text-brand" /> NAV History
+                <span className="text-xs font-normal text-muted-foreground">(last 4 months)</span>
+              </h3>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {navHistory[0]?.date} → {navHistory[navHistory.length - 1]?.date}
+              </p>
+            </div>
+            <span className={cn("text-sm font-bold", historyPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500")}>
+              {historyPositive ? "+" : ""}{navHistory.length > 1 ? (((navHistory[navHistory.length - 1].nav - navHistory[0].nav) / navHistory[0].nav) * 100).toFixed(2) : "0"}%
+            </span>
+          </div>
+          <div className="rounded-2xl bg-muted/40 p-3">
+            <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-36 w-full">
+              <defs>
+                <linearGradient id="sheetNavGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={chartColor} stopOpacity="0.3" />
+                  <stop offset="100%" stopColor={chartColor} stopOpacity="0.02" />
+                </linearGradient>
+              </defs>
+              <path d={`${svgPath} L ${W},${H} L 0,${H} Z`} fill="url(#sheetNavGrad)" />
+              <path d={svgPath} fill="none" stroke={chartColor} strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+            </svg>
+            <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
+              <span>₹{minNav.toFixed(2)}</span>
+              <span>₹{maxNav.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Summary */}
+      <div className="mt-6 rounded-3xl border bg-card p-5">
+        <div className="flex items-center gap-2 font-medium text-sm">
           <Sparkles className="size-4 text-brand" />
           AI Performance Summary
         </div>
-        
         {ai.data ? (
-          <div className="mt-4 text-sm leading-relaxed text-muted-foreground">
+          <div className="mt-4 rounded-2xl bg-accent/60 p-4 text-sm leading-relaxed text-foreground">
             {ai.data.Text}
           </div>
         ) : (
@@ -531,33 +618,42 @@ function FundDetailView({ code, onClose }: { code: number; onClose: () => void }
             <Button
               onClick={() => ai.mutate()}
               disabled={ai.isPending}
-              variant="outline"
-              className="w-full sm:w-auto"
+              className="rounded-full bg-gradient-brand text-white shadow-glow w-full sm:w-auto"
             >
-              {ai.isPending ? "Analysing..." : "Explain these numbers"}
+              {ai.isPending ? "Analysing…" : "Explain these numbers"}
             </Button>
+            {ai.isError && <p className="mt-2 text-xs text-rose-500">Could not generate summary. Try again.</p>}
           </div>
         )}
       </div>
 
-      <div className="mt-8">
-        <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <Activity className="size-4 text-muted-foreground" />
-          52-Week Range
-        </h3>
-        <div className="rounded-2xl border p-4 bg-muted/30">
-          <div className="flex justify-between text-sm">
-            <div>
-              <div className="text-muted-foreground mb-1">Low ({fund.Low52w?.Date})</div>
-              <div className="font-medium">₹{fund.Low52w?.Nav}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-muted-foreground mb-1">High ({fund.High52w?.Date})</div>
-              <div className="font-medium">₹{fund.High52w?.Nav}</div>
-            </div>
+      {/* 52-Week Range */}
+      {fund.high52w && fund.low52w && (
+        <div className="mt-6 rounded-3xl border border-border/70 bg-card p-5">
+          <h3 className="flex items-center gap-2 text-sm font-semibold mb-4">
+            <Activity className="size-4 text-muted-foreground" /> 52-Week Range
+          </h3>
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+            <span>Low ₹{fund.low52w.nav} <span className="opacity-60">({fund.low52w.date})</span></span>
+            <span>High ₹{fund.high52w.nav} <span className="opacity-60">({fund.high52w.date})</span></span>
+          </div>
+          <div className="relative h-2.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-brand to-emerald-500 transition-all duration-700"
+              style={{ width: `${progress52}%` }}
+            />
+          </div>
+          <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>Current ₹{fund.latest.nav}</span>
+            <span>{progress52.toFixed(0)}% from 52w low</span>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* CTA */}
+      <Button asChild className="mt-6 w-full rounded-full bg-gradient-brand text-white">
+        <Link to="/funds/compare">Compare this fund <ArrowRight className="ml-1 size-4" /></Link>
+      </Button>
     </div>
   );
 }

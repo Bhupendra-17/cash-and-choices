@@ -33,12 +33,3 @@ This is a large, multi-page build. I'll ship it in phases so you can review each
 ## Phase 7 — Transparency & UX polish
 - Reusable `KnowBeforeYouInvest`, `MetricWithTooltip`, `CostBreakdownCard`, `ScenarioSimulator` components used across all investment pages.
 - Site nav updated so all new sections are reachable; new pages get proper `head()` metadata for SEO.
-
-## Technical notes
-- No backend needed: fund data is static (marked as illustrative sample data with disclaimers); calculators run client-side; AI explanations use the existing Lovable AI Gateway server function.
-- Live NAV would need a paid market-data API — I'll flag "live prices" as a follow-up rather than fake them. The dataset will carry a clear "sample data" disclaimer, and I'll leave a documented `fetchNav()` seam so we can wire a real feed later (e.g. AMFI daily NAV or a paid provider) without rewriting the UI.
-- All tax figures cite FY 2025-26 rules with a disclaimer that they're estimates.
-- Charts via Recharts, tooltips via existing shadcn Tooltip.
-
-## What I'll do first
-If you approve, I'll start with **Phase 1 (data + listings)** and check in before moving to Phase 2. Reply "go" to start, or tell me which phase to prioritize / skip.

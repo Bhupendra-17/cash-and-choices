@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-rout
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Calculator, TrendingUp, PiggyBank, Banknote, Landmark, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AnimatedCard } from "@/components/AnimatedCard";
 
 export const Route = createFileRoute("/calculators")({
   head: () => ({
@@ -80,7 +81,7 @@ function CalculatorsLayout() {
 
         {isHub ? (
           <>
-            <div className="mt-8 grid overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card lg:grid-cols-[1fr_1.25fr]">
+            <AnimatedCard delay={0.1} className="mt-8 grid overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card lg:grid-cols-[1fr_1.25fr]">
               <div className="flex flex-col justify-center p-6 sm:p-8">
                 <div className="text-xs font-semibold uppercase tracking-wider text-brand-deep">
                   Plan with numbers, not guesswork
@@ -95,19 +96,24 @@ function CalculatorsLayout() {
                 alt="Illustration of a calculator, rupee, growth chart and Nifty fund"
                 className="h-full min-h-52 w-full object-cover object-center"
               />
-            </div>
+            </AnimatedCard>
             <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {CALCULATORS.map((c) => (
-                <Link
+              {CALCULATORS.map((c, index) => (
+                <AnimatedCard
+                  delay={0.2 + index * 0.05}
                   key={c.slug}
-                  to="/calculators/$type"
-                  params={{ type: c.slug }}
-                  className="group rounded-3xl border border-border bg-card p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-glow"
+                  className="group rounded-3xl border border-border bg-card shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-glow"
                 >
-                  <c.icon className="size-6 text-brand" />
-                  <h3 className="mt-3 font-semibold group-hover:text-brand">{c.label}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{c.blurb}</p>
-                </Link>
+                  <Link
+                    to="/calculators/$type"
+                    params={{ type: c.slug }}
+                    className="block p-5"
+                  >
+                    <c.icon className="size-6 text-brand" />
+                    <h3 className="mt-3 font-semibold group-hover:text-brand">{c.label}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{c.blurb}</p>
+                  </Link>
+                </AnimatedCard>
               ))}
             </div>
             <p className="mt-8 text-xs text-muted-foreground">

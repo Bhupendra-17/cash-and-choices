@@ -23,6 +23,7 @@ import { Progress } from "@/components/ui/progress";
 import { ExplainHint } from "@/components/ui/ExplainHint";
 import { PRODUCTS, labelFor, scoreFor, type Product } from "@/data/products";
 import { cn } from "@/lib/utils";
+import { AnimatedCard } from "@/components/AnimatedCard";
 
 export type AIRecommendation = {
   headline: string;
@@ -793,7 +794,7 @@ function RecommendPage() {
 
         {!done ? (
           /* ─── Question Card ─── */
-          <div className="mt-8 rounded-3xl border border-border/70 bg-card p-6 shadow-card sm:p-8">
+          <AnimatedCard delay={0.1} className="mt-8 rounded-3xl border border-border/70 bg-card p-6 shadow-card sm:p-8">
             <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Step {step + 1} / {QUESTIONS.length}
             </div>
@@ -861,7 +862,7 @@ function RecommendPage() {
                 <ArrowRight className="ml-1 size-4" />
               </Button>
             </div>
-          </div>
+          </AnimatedCard>
         ) : (
           /* ─── Results ─── */
           <div className="mt-8 space-y-6">

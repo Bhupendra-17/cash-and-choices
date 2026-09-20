@@ -22,6 +22,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { AnimatedCard } from "@/components/AnimatedCard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -238,15 +239,15 @@ function LandingPage() {
                 title: "Check before you choose",
                 body: "Use a calculator, compare two options, or unpack a charge before taking action.",
               },
-            ].map((step) => (
-              <div key={step.number} className="rounded-3xl border border-border/70 bg-card p-6 shadow-soft">
+            ].map((step, index) => (
+              <AnimatedCard delay={index * 0.1} key={step.number} className="rounded-3xl border border-border/70 bg-card p-6 shadow-soft">
                 <div className="flex items-center justify-between">
                   <step.icon className="size-6 text-brand" />
                   <span className="text-xs font-semibold tracking-widest text-muted-foreground">{step.number}</span>
                 </div>
                 <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
-              </div>
+              </AnimatedCard>
             ))}
           </div>
         </div>
@@ -261,8 +262,9 @@ function LandingPage() {
           </p>
         </div>
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f) => (
-            <div
+          {features.map((f, index) => (
+            <AnimatedCard
+              delay={index * 0.1}
               key={f.title}
               className="group rounded-3xl border border-border/70 bg-card p-6 shadow-soft transition-shadow hover:shadow-card"
             >
@@ -271,7 +273,7 @@ function LandingPage() {
               </div>
               <h3 className="mt-4 text-lg font-semibold">{f.title}</h3>
               <p className="mt-1.5 text-sm text-muted-foreground">{f.body}</p>
-            </div>
+            </AnimatedCard>
           ))}
         </div>
       </section>
@@ -401,8 +403,9 @@ function LandingPage() {
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
         <h2 className="text-center text-3xl font-bold sm:text-4xl">Loved by people who hate fine print</h2>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {testimonials.map((t) => (
-            <figure
+          {testimonials.map((t, index) => (
+            <AnimatedCard
+              delay={index * 0.1}
               key={t.name}
               className="rounded-3xl border border-border/70 bg-card p-6 shadow-soft"
             >
@@ -419,7 +422,7 @@ function LandingPage() {
                   <span className="block text-xs text-muted-foreground">{t.role}</span>
                 </span>
               </figcaption>
-            </figure>
+            </AnimatedCard>
           ))}
         </div>
       </section>

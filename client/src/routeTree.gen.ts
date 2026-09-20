@@ -20,6 +20,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RecommendRouteImport } from './routes/recommend'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as CalculatorsTypeRouteImport } from './routes/calculators.$type'
+import { Route as FundsCodeRouteImport } from './routes/funds.$code'
 import { Route as FundsCompareRouteImport } from './routes/funds.compare'
 
 const IndexRoute = IndexRouteImport.update({
@@ -77,6 +78,11 @@ const CalculatorsTypeRoute = CalculatorsTypeRouteImport.update({
   path: '/$type',
   getParentRoute: () => CalculatorsRoute,
 } as any)
+const FundsCodeRoute = FundsCodeRouteImport.update({
+  id: '/$code',
+  path: '/$code',
+  getParentRoute: () => FundsRoute,
+} as any)
 const FundsCompareRoute = FundsCompareRouteImport.update({
   id: '/compare',
   path: '/compare',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/recommend': typeof RecommendRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/calculators/$type': typeof CalculatorsTypeRoute
+  '/funds/$code': typeof FundsCodeRoute
   '/funds/compare': typeof FundsCompareRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/recommend': typeof RecommendRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/calculators/$type': typeof CalculatorsTypeRoute
+  '/funds/$code': typeof FundsCodeRoute
   '/funds/compare': typeof FundsCompareRoute
 }
 export interface FileRoutesById {
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/recommend': typeof RecommendRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/calculators/$type': typeof CalculatorsTypeRoute
+  '/funds/$code': typeof FundsCodeRoute
   '/funds/compare': typeof FundsCompareRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/recommend'
     | '/sitemap.xml'
     | '/calculators/$type'
+    | '/funds/$code'
     | '/funds/compare'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/recommend'
     | '/sitemap.xml'
     | '/calculators/$type'
+    | '/funds/$code'
     | '/funds/compare'
   id:
     | '__root__'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/recommend'
     | '/sitemap.xml'
     | '/calculators/$type'
+    | '/funds/$code'
     | '/funds/compare'
   fileRoutesById: FileRoutesById
 }
@@ -263,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalculatorsTypeRouteImport
       parentRoute: typeof CalculatorsRoute
     }
+    '/funds/$code': {
+      id: '/funds/$code'
+      path: '/$code'
+      fullPath: '/funds/$code'
+      preLoaderRoute: typeof FundsCodeRouteImport
+      parentRoute: typeof FundsRoute
+    }
     '/funds/compare': {
       id: '/funds/compare'
       path: '/compare'
@@ -286,10 +305,12 @@ const CalculatorsRouteWithChildren = CalculatorsRoute._addFileChildren(
 )
 
 interface FundsRouteChildren {
+  FundsCodeRoute: typeof FundsCodeRoute
   FundsCompareRoute: typeof FundsCompareRoute
 }
 
 const FundsRouteChildren: FundsRouteChildren = {
+  FundsCodeRoute: FundsCodeRoute,
   FundsCompareRoute: FundsCompareRoute,
 }
 
