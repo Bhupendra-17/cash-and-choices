@@ -162,7 +162,7 @@ function ComparePage() {
               </div>
             </div>
 
-            <div className="mt-6 overflow-hidden rounded-3xl border border-border/70 bg-card shadow-soft">
+            <div className="mt-6 overflow-x-auto overflow-y-hidden rounded-3xl border border-border/70 bg-card shadow-soft">
               <table className="w-full text-sm">
                 <thead className="bg-accent/50 text-left">
                   <tr>

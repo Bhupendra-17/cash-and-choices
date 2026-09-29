@@ -1,4 +1,4 @@
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @source "../src";
 @import "tw-animate-css";
 
@@ -52,15 +52,20 @@
 }
 
 :root {
-  --radius: 1.125rem; /* 18px */
+  --radius: 1.125rem;
+  /* 18px */
 
   /* Brand */
-  --brand: oklch(0.68 0.20 355);        /* #F05AA8 */
-  --brand-soft: oklch(0.80 0.13 355);   /* #FF8BC6 */
-  --brand-deep: oklch(0.55 0.19 350);   /* #C13E8A */
+  --brand: oklch(0.68 0.20 355);
+  /* #F05AA8 */
+  --brand-soft: oklch(0.80 0.13 355);
+  /* #FF8BC6 */
+  --brand-deep: oklch(0.55 0.19 350);
+  /* #C13E8A */
 
   /* Surfaces */
-  --background: oklch(0.985 0.008 350); /* #FFF7FB */
+  --background: oklch(0.985 0.008 350);
+  /* #FFF7FB */
   --surface: oklch(1 0 0);
   --foreground: oklch(0.22 0.03 320);
 
@@ -93,8 +98,8 @@
   --gradient-brand: linear-gradient(135deg, oklch(0.72 0.19 355), oklch(0.60 0.20 320));
   --gradient-brand-soft: linear-gradient(135deg, oklch(0.97 0.03 355), oklch(0.94 0.05 320));
   --gradient-hero: radial-gradient(1200px 600px at 10% -10%, oklch(0.90 0.09 355 / 0.55), transparent 60%),
-                   radial-gradient(900px 500px at 100% 0%, oklch(0.85 0.11 320 / 0.45), transparent 60%),
-                   linear-gradient(180deg, oklch(0.985 0.008 350), oklch(1 0 0));
+    radial-gradient(900px 500px at 100% 0%, oklch(0.85 0.11 320 / 0.45), transparent 60%),
+    linear-gradient(180deg, oklch(0.985 0.008 350), oklch(1 0 0));
   --shadow-soft: 0 1px 2px oklch(0 0 0 / 0.04), 0 8px 24px oklch(0.55 0.19 350 / 0.08);
   --shadow-glow: 0 20px 60px -20px oklch(0.68 0.20 355 / 0.45);
   --shadow-card: 0 1px 3px oklch(0 0 0 / 0.04), 0 12px 32px -12px oklch(0.55 0.19 350 / 0.15);
@@ -125,23 +130,33 @@
   --gradient-brand: linear-gradient(135deg, oklch(0.60 0.18 345), oklch(0.45 0.16 320));
   --gradient-brand-soft: linear-gradient(135deg, oklch(0.30 0.05 330), oklch(0.22 0.04 320));
   --gradient-hero: radial-gradient(1200px 600px at 10% -10%, oklch(0.26 0.04 335 / 0.45), transparent 60%),
-                   radial-gradient(900px 500px at 100% 0%, oklch(0.22 0.04 300 / 0.35), transparent 60%),
-                   linear-gradient(180deg, var(--background), var(--surface));
+    radial-gradient(900px 500px at 100% 0%, oklch(0.22 0.04 300 / 0.35), transparent 60%),
+    linear-gradient(180deg, var(--background), var(--surface));
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
+    -webkit-tap-highlight-color: transparent;
   }
-  html, body {
+
+  html,
+  body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    width: 100%;
   }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
-  h1, h2, h3, h4 {
+
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
@@ -150,48 +165,88 @@
 @utility bg-gradient-brand {
   background-image: var(--gradient-brand);
 }
+
 @utility bg-gradient-brand-soft {
   background-image: var(--gradient-brand-soft);
 }
+
 @utility bg-gradient-hero {
   background-image: var(--gradient-hero);
 }
+
 @utility text-gradient-brand {
   background-image: var(--gradient-brand);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
+
 @utility shadow-soft {
   box-shadow: var(--shadow-soft);
 }
+
 @utility shadow-glow {
   box-shadow: var(--shadow-glow);
 }
+
 @utility shadow-card {
   box-shadow: var(--shadow-card);
 }
+
 @utility glass {
   background-color: oklch(1 0 0 / 0.6);
   backdrop-filter: saturate(140%) blur(14px);
   -webkit-backdrop-filter: saturate(140%) blur(14px);
   border: 1px solid oklch(1 0 0 / 0.5);
 }
+
 .dark .glass {
   background-color: oklch(0.22 0.03 320 / 0.65);
   border-color: oklch(1 0 0 / 0.08);
 }
 
 /* Override a few hard-coded white utilities used in the landing page so they adapt in dark mode. */
-.dark .bg-white\/70 { background-color: oklch(0.22 0.03 320 / 0.7) !important; }
-.dark .bg-white\/80 { background-color: oklch(0.22 0.03 320 / 0.8) !important; }
-.dark .bg-white\/10 { background-color: oklch(0.22 0.03 320 / 0.1) !important; }
-.dark .bg-white\/15 { background-color: oklch(0.22 0.03 320 / 0.15) !important; }
-.dark .border-white\/20 { border-color: oklch(1 0 0 / 0.2) !important; }
-.dark .border-white\/40 { border-color: oklch(1 0 0 / 0.4) !important; }
-.dark .bg-white { background-color: oklch(0.22 0.03 320) !important; }
-.dark .text-white\/80 { color: oklch(1 0 0 / 0.8) !important; }
+.dark .bg-white\/70 {
+  background-color: oklch(0.22 0.03 320 / 0.7) !important;
+}
+
+.dark .bg-white\/80 {
+  background-color: oklch(0.22 0.03 320 / 0.8) !important;
+}
+
+.dark .bg-white\/10 {
+  background-color: oklch(0.22 0.03 320 / 0.1) !important;
+}
+
+.dark .bg-white\/15 {
+  background-color: oklch(0.22 0.03 320 / 0.15) !important;
+}
+
+.dark .border-white\/20 {
+  border-color: oklch(1 0 0 / 0.2) !important;
+}
+
+.dark .border-white\/40 {
+  border-color: oklch(1 0 0 / 0.4) !important;
+}
+
+.dark .bg-white {
+  background-color: oklch(0.22 0.03 320) !important;
+}
+
+.dark .text-white\/80 {
+  color: oklch(1 0 0 / 0.8) !important;
+}
+
 /* Hover-specific utility overrides */
-.dark .hover\:bg-white\/95:hover { background-color: oklch(0.22 0.03 320 / 0.95) !important; }
-.dark .hover\:bg-white\/10:hover { background-color: oklch(0.22 0.03 320 / 0.1) !important; }
-.dark .hover\:bg-white\/05:hover { background-color: oklch(0.22 0.03 320 / 0.05) !important; }
+.dark .hover\:bg-white\/95:hover {
+  background-color: oklch(0.22 0.03 320 / 0.95) !important;
+}
+
+.dark .hover\:bg-white\/10:hover {
+  background-color: oklch(0.22 0.03 320 / 0.1) !important;
+}
+
+.dark .hover\:bg-white\/05:hover {
+  background-color: oklch(0.22 0.03 320 / 0.05) !important;
+}

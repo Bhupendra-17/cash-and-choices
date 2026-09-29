@@ -35,7 +35,7 @@ func (e *EmailService) SendOTPEmail(recipientEmail, otp string) error {
 
 	subject := "Subject: Cash&Choices — Verification Code\r\n"
 	mime := "MIME-version: 1.0;\r\nContent-Type: text/html; charset=\"UTF-8\";\r\n\r\n"
-	
+
 	body := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>

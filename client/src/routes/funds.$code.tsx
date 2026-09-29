@@ -250,7 +250,7 @@ function FundDetailPage() {
                 />
               </div>
               <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Current ₹{fund.Latest.Nav}</span>
+                <span className="text-muted-foreground">Current ₹{fund.latest.nav}</span>
                 <span className="text-muted-foreground font-medium">
                   {progress52.toFixed(0)}% from low
                 </span>

@@ -391,19 +391,7 @@ function AuthPage() {
                 {!loading && <ArrowRight className="size-4 ml-1" />}
               </Button>
 
-              <div className="text-center mt-3">
-                <span className="text-xs text-muted-foreground">Demo account available: </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail("demo@cashchoices.in");
-                    setPassword("demo1234");
-                  }}
-                  className="text-xs font-semibold text-brand underline"
-                >
-                  Fill demo credentials
-                </button>
-              </div>
+
             </form>
           )}
 

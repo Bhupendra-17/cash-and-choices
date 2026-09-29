@@ -12,10 +12,10 @@ import (
 )
 
 type APIHandler struct {
-	mfService       *services.MFService
-	aiService       *services.AIService
-	calcService     *services.CalculatorService
-	authService     *services.AuthService
+	mfService        *services.MFService
+	aiService        *services.AIService
+	calcService      *services.CalculatorService
+	authService      *services.AuthService
 	analyticsService *services.AnalyticsService
 	featuredService  *services.FeaturedFundsService
 }
@@ -420,4 +420,3 @@ func (h *APIHandler) RecordFundInteraction(w http.ResponseWriter, r *http.Reques
 
 	respondJSON(w, http.StatusOK, map[string]string{"status": "recorded"})
 }
-
