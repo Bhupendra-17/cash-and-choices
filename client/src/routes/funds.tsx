@@ -5,6 +5,8 @@ import {
   Activity,
   ArrowRight,
   BarChart3,
+  Check,
+  Plus,
   Search,
   ShieldCheck,
   Sparkles,
@@ -16,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
+import { useCompare } from "@/lib/compare-context";
 import { FUND_CATEGORIES, MUTUAL_FUNDS, fundCategoryLabel, type FundCategory, type MutualFund } from "@/data/mutualFunds";
 import { AnimatedCard } from "@/components/AnimatedCard";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -373,7 +376,7 @@ function FeaturedFundSnapshot({ fund }: { fund: MutualFund }) {
           <h3 className="mt-0.5 font-semibold text-xs sm:text-sm truncate">{fund.name}</h3>
           <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground truncate">{fund.amc} · {fund.benchmark}</p>
         </div>
-        <Link to="/funds/compare" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-deep hover:underline shrink-0">
+        <Link to="/funds/compare" search={{ ids: fund.id }} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-deep hover:underline shrink-0">
           Compare funds <ArrowRight className="size-3.5" />
         </Link>
       </div>
@@ -440,6 +443,9 @@ function MiniPerformanceChart({ fund }: { fund: MutualFund }) {
 }
 
 function CuratedFundDetailView({ fund }: { fund: MutualFund; onClose?: () => void }) {
+  const { toggleFund, isFundSelected, selectedIds, goToCompare } = useCompare();
+  const isSelected = isFundSelected(fund.id);
+
   return (
     <div className="p-2 sm:p-0">
       <SheetHeader className="mb-6 pr-6">
@@ -474,12 +480,44 @@ function CuratedFundDetailView({ fund }: { fund: MutualFund; onClose?: () => voi
         <h3 className="mt-5 font-semibold">Watch out when</h3>
         <ul className="mt-3 space-y-2 text-sm text-muted-foreground">{fund.avoidIf.map((item) => <li key={item}>• {item}</li>)}</ul>
       </div>
-      <Button asChild className="mt-6 w-full rounded-full bg-gradient-brand text-white"><Link to="/funds/compare">Compare this fund <ArrowRight className="size-4" /></Link></Button>
+      <div className="mt-6 flex flex-col gap-2">
+        <Button
+          type="button"
+          onClick={() => toggleFund(fund.id, fund.name)}
+          className={cn(
+            "w-full rounded-full transition-all py-2.5",
+            isSelected
+              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 font-bold"
+              : "bg-gradient-brand text-white shadow-glow"
+          )}
+        >
+          {isSelected ? (
+            <span className="flex items-center justify-center gap-2">
+              <Check className="size-4 stroke-[3]" /> Added to Compare ({selectedIds.length}/4)
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              <Plus className="size-4" /> Add to Compare
+            </span>
+          )}
+        </Button>
+        {selectedIds.length > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={goToCompare}
+            className="w-full rounded-full border-border text-xs font-semibold"
+          >
+            Compare Now ({selectedIds.length}) <ArrowRight className="ml-1 size-3.5" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
 
 function FundDetailView({ code, onClose }: { code: number; onClose: () => void }) {
+  const { selectedIds, toggleFund, goToCompare } = useCompare();
   const { data: fund, isLoading, error } = useQuery({
     queryKey: ["fundDetail", code],
     queryFn: async () => {
@@ -514,6 +552,9 @@ function FundDetailView({ code, onClose }: { code: number; onClose: () => void }
   if (error || !fund) {
     return <div className="flex h-full items-center justify-center p-6 text-rose-500">Failed to load fund data.</div>;
   }
+
+  const fundId = String(fund.meta.scheme_code);
+  const isSelected = selectedIds.includes(fundId);
 
   // Build NAV history chart
   const navHistory = fund.history?.slice(-120) ?? [];
@@ -641,10 +682,39 @@ function FundDetailView({ code, onClose }: { code: number; onClose: () => void }
         </div>
       )}
 
-      {/* CTA */}
-      <Button asChild className="mt-6 w-full rounded-full bg-gradient-brand text-white">
-        <Link to="/funds/compare">Compare this fund <ArrowRight className="ml-1 size-4" /></Link>
-      </Button>
+      {/* Compare Actions */}
+      <div className="mt-6 flex flex-col gap-2">
+        <Button
+          type="button"
+          onClick={() => toggleFund(fundId, fund.meta.scheme_name)}
+          className={cn(
+            "w-full rounded-full transition-all py-2.5",
+            isSelected
+              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 font-bold"
+              : "bg-gradient-brand text-white shadow-glow"
+          )}
+        >
+          {isSelected ? (
+            <span className="flex items-center justify-center gap-2">
+              <Check className="size-4 stroke-[3]" /> Added to Compare ({selectedIds.length}/4)
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              <Plus className="size-4" /> Compare this fund
+            </span>
+          )}
+        </Button>
+        {selectedIds.length > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={goToCompare}
+            className="w-full rounded-full border-border text-xs font-semibold"
+          >
+            Compare Now ({selectedIds.length}) <ArrowRight className="ml-1 size-3.5" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

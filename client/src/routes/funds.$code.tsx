@@ -6,9 +6,11 @@ import {
   ArrowRight,
   BarChart2,
   Brain,
+  Check,
   ChevronDown,
   ChevronUp,
   Info,
+  Plus,
   Sparkles,
   TrendingDown,
   TrendingUp,
@@ -18,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { AnimatedCard } from "@/components/AnimatedCard";
+import { useCompare } from "@/lib/compare-context";
 
 export const Route = createFileRoute("/funds/$code")({
   head: ({ params }) => ({
@@ -49,6 +52,7 @@ function FundDetailPage() {
   const { code } = Route.useParams();
   const navigate = useNavigate();
   const schemeCode = parseInt(code, 10);
+  const { selectedIds, toggleFund, goToCompare } = useCompare();
 
   const { data: fund, isLoading, error } = useQuery({
     queryKey: ["fundDetail", schemeCode],
@@ -298,24 +302,55 @@ function FundDetailPage() {
         </AnimatedCard>
 
         {/* CTA */}
-        <AnimatedCard delay={0.4} className="mt-6 rounded-3xl border border-brand/30 bg-gradient-to-r from-brand/5 to-emerald-500/5 p-6 shadow-soft">
-          <h2 className="font-semibold">Want to compare this fund?</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Stack it against other funds side-by-side and see how it ranks on cost, risk, and returns.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button asChild className="rounded-full bg-gradient-brand text-white shadow-glow">
-              <Link to="/funds/compare">
-                Compare funds <ArrowRight className="ml-1 size-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="rounded-full">
-              <Link to="/funds">
-                <ArrowLeft className="mr-1 size-4" /> Back to search
-              </Link>
-            </Button>
-          </div>
-        </AnimatedCard>
+        {(() => {
+          const fundId = String(fund.meta.scheme_code);
+          const isSelected = selectedIds.includes(fundId);
+          return (
+            <AnimatedCard delay={0.4} className="mt-6 rounded-3xl border border-brand/30 bg-gradient-to-r from-brand/5 to-emerald-500/5 p-6 shadow-soft">
+              <h2 className="font-semibold">Want to compare this fund?</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Stack it against other funds side-by-side and see how it ranks on cost, risk, and returns.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button
+                  type="button"
+                  onClick={() => toggleFund(fundId, fund.meta.scheme_name)}
+                  className={cn(
+                    "rounded-full transition-all px-5 py-2.5",
+                    isSelected
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 font-bold"
+                      : "bg-gradient-brand text-white shadow-glow"
+                  )}
+                >
+                  {isSelected ? (
+                    <span className="flex items-center gap-2">
+                      <Check className="size-4 stroke-[3]" /> Added to Compare ({selectedIds.length}/4)
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Plus className="size-4" /> Compare this fund
+                    </span>
+                  )}
+                </Button>
+                {selectedIds.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={goToCompare}
+                    className="rounded-full border-border text-xs font-semibold px-5"
+                  >
+                    Compare Now ({selectedIds.length}) <ArrowRight className="ml-1 size-3.5" />
+                  </Button>
+                )}
+                <Button asChild variant="outline" className="rounded-full">
+                  <Link to="/funds">
+                    <ArrowLeft className="mr-1 size-4" /> Back to search
+                  </Link>
+                </Button>
+              </div>
+            </AnimatedCard>
+          );
+        })()}
       </section>
     </SiteLayout>
   );

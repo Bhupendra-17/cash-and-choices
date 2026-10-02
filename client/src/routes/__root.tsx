@@ -122,6 +122,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 import { AuthProvider } from "../lib/auth-context";
+import { CompareProvider } from "../lib/compare-context";
 import { Analytics } from "@vercel/analytics/react";
 
 function RootComponent() {
@@ -131,9 +132,11 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider>
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-          <Analytics />
+          <CompareProvider>
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+            <Analytics />
+          </CompareProvider>
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
