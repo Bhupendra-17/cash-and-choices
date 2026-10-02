@@ -101,7 +101,7 @@ export const SvgPieChart: React.FC<PieChartProps> = ({
 
 // --- SVG RADAR CHART ---
 export interface RadarChartProps {
-  data: Array<{ axis: string; [key: string]: any }>;
+  data: Array<{ axis: string;[key: string]: any }>;
   series: Array<{ name: string; key: string; stroke: string; fill: string }>;
 }
 

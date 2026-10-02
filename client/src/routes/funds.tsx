@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   Sparkles,
   TrendingUp,
-  X,
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -120,21 +119,21 @@ function FundsPage() {
           </div>
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[1.45fr_0.85fr]">
-          <AnimatedCard delay={0.1} className="rounded-3xl border border-border/70 bg-card p-6 shadow-card sm:p-7">
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+        <div className="mt-8 grid gap-4 lg:grid-cols-[1.45fr_0.85fr]">
+          <AnimatedCard delay={0.1} className="rounded-2xl sm:rounded-3xl border border-border/70 bg-card p-4 sm:p-7 shadow-card min-w-0 overflow-hidden">
+            <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
               <div>
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-deep">
                   <ShieldCheck className="size-3.5" /> Editorial shortlist
                 </div>
-                <h2 className="mt-2 text-xl font-bold">Funds worth understanding first</h2>
-                <p className="mt-1 text-xs text-muted-foreground">A starting list, not a buy signal. We balance return, cost and volatility.</p>
+                <h2 className="mt-1.5 text-lg sm:text-xl font-bold">Funds worth understanding first</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">A starting list, not a buy signal. We balance return, cost and volatility.</p>
               </div>
-              <Link to="/recommend" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-deep hover:underline">
+              <Link to="/recommend" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-deep hover:underline shrink-0">
                 Use my profile <ArrowRight className="size-3.5" />
               </Link>
             </div>
-            <div className="mt-6 grid gap-3 md:grid-cols-3">
+            <div className="mt-4 sm:mt-6 grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-3">
               {featuredFunds.map((fund, index) => (
                 <button
                   key={fund.id}
@@ -144,17 +143,17 @@ function FundsPage() {
                     setSelectedFund(fund);
                   }}
                   className={cn(
-                    "rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-soft",
+                    "rounded-xl sm:rounded-2xl border p-3.5 sm:p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-soft min-w-0 overflow-hidden",
                     selectedFeatured?.id === fund.id ? "border-brand bg-brand/5 ring-1 ring-brand/30" : "border-border bg-background",
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">#{index + 1} shortlist</span>
-                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">{fund.returns.y3.toFixed(1)}% 3Y</span>
+                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">{fund.returns.y3.toFixed(1)}% 3Y</span>
                   </div>
-                  <h3 className="mt-3 line-clamp-2 text-sm font-semibold">{fund.name}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">{fundCategoryLabel(fund.category)} · {fund.risk} risk</p>
-                  <div className="mt-4 flex items-center justify-between text-xs">
+                  <h3 className="mt-2 line-clamp-2 text-xs sm:text-sm font-semibold">{fund.name}</h3>
+                  <p className="mt-1 text-[11px] sm:text-xs text-muted-foreground truncate">{fundCategoryLabel(fund.category)} · {fund.risk} risk</p>
+                  <div className="mt-3 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Cost</span>
                     <span className="font-semibold">{fund.expenseRatio.toFixed(2)}%</span>
                   </div>
@@ -165,12 +164,12 @@ function FundsPage() {
             {selectedFeatured && <FeaturedFundSnapshot fund={selectedFeatured} />}
           </AnimatedCard>
 
-          <AnimatedCard delay={0.2} className="rounded-3xl border border-border/70 bg-surface p-6 shadow-soft sm:p-7">
+          <AnimatedCard delay={0.2} className="rounded-2xl sm:rounded-3xl border border-border/70 bg-surface p-4 sm:p-7 shadow-soft min-w-0 overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <TrendingUp className="size-3.5 text-brand" /> Popular categories
             </div>
-            <h2 className="mt-2 text-xl font-bold">Choose by what you need.</h2>
-            <div className="mt-5 space-y-2">
+            <h2 className="mt-1.5 text-lg sm:text-xl font-bold">Choose by what you need.</h2>
+            <div className="mt-4 space-y-2">
               {popularCategories.map((category) => (
                 <CategoryRow
                   key={category.id}
@@ -187,7 +186,7 @@ function FundsPage() {
                 />
               ))}
             </div>
-            <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
+            <p className="mt-4 text-[10px] sm:text-[11px] leading-relaxed text-muted-foreground">
               Categories describe the kind of exposure a fund gives you. They are not risk ratings.
             </p>
           </AnimatedCard>
@@ -211,46 +210,46 @@ function FundsPage() {
 
         {debouncedQuery.length < 2 && (
           <AnimatedCard delay={0.3} className="mt-8 overflow-hidden rounded-3xl border border-border/70 bg-card shadow-soft">
-          <div className="flex flex-col justify-between gap-3 border-b border-border/70 p-5 sm:flex-row sm:items-center sm:px-6">
-            <div>
-              <h2 className="text-lg font-bold">Funds at a glance</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Tap any fund to see its full profile and performance details.</p>
+            <div className="flex flex-col justify-between gap-3 border-b border-border/70 p-5 sm:flex-row sm:items-center sm:px-6">
+              <div>
+                <h2 className="text-lg font-bold">Funds at a glance</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Tap any fund to see its full profile and performance details.</p>
+              </div>
+              <span className="text-xs text-muted-foreground">{visibleFunds.length} funds shown</span>
             </div>
-            <span className="text-xs text-muted-foreground">{visibleFunds.length} funds shown</span>
-          </div>
-          <div className="divide-y divide-border/70">
-            {visibleFunds.map((fund) => (
-              <button
-                key={fund.id}
-                type="button"
-                onClick={() => setSelectedFund(fund)}
-                className="grid w-full gap-4 p-4 text-left transition-colors hover:bg-accent/40 sm:grid-cols-[minmax(0,1.6fr)_110px_120px_150px] sm:items-center sm:px-6"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="truncate text-sm font-semibold">{fund.name}</h3>
-                    <span className="hidden rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground sm:inline-flex">{fund.planType}</span>
+            <div className="divide-y divide-border/70">
+              {visibleFunds.map((fund) => (
+                <button
+                  key={fund.id}
+                  type="button"
+                  onClick={() => setSelectedFund(fund)}
+                  className="grid w-full gap-4 p-4 text-left transition-colors hover:bg-accent/40 sm:grid-cols-[minmax(0,1.6fr)_110px_120px_150px] sm:items-center sm:px-6"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="truncate text-sm font-semibold">{fund.name}</h3>
+                      <span className="hidden rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground sm:inline-flex">{fund.planType}</span>
+                    </div>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">{fund.amc} · {fundCategoryLabel(fund.category)} · {fund.risk} risk</p>
                   </div>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">{fund.amc} · {fundCategoryLabel(fund.category)} · {fund.risk} risk</p>
-                </div>
-                <div className="hidden sm:block">
-                  <MiniPerformanceChart fund={fund} />
-                </div>
-                <div className="flex items-center justify-between gap-3 sm:block">
-                  <span className="text-xs text-muted-foreground">3M return</span>
-                  <span className={cn("text-sm font-bold", fund.returns.m3 >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>{formatReturn(fund.returns.m3)}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 text-xs sm:block">
-                  <span className="text-muted-foreground">5Y CAGR</span>
-                  <span className="font-semibold">{fund.returns.y5.toFixed(1)}% <ArrowRight className="ml-1 inline size-3.5 text-brand" /></span>
-                </div>
-              </button>
-            ))}
-            {visibleFunds.length === 0 && (
-              <div className="p-10 text-center text-sm text-muted-foreground">No curated funds match this search.</div>
-            )}
-          </div>
-        </AnimatedCard>
+                  <div className="hidden sm:block">
+                    <MiniPerformanceChart fund={fund} />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 sm:block">
+                    <span className="text-xs text-muted-foreground">3M return</span>
+                    <span className={cn("text-sm font-bold", fund.returns.m3 >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>{formatReturn(fund.returns.m3)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 text-xs sm:block">
+                    <span className="text-muted-foreground">5Y CAGR</span>
+                    <span className="font-semibold">{fund.returns.y5.toFixed(1)}% <ArrowRight className="ml-1 inline size-3.5 text-brand" /></span>
+                  </div>
+                </button>
+              ))}
+              {visibleFunds.length === 0 && (
+                <div className="p-10 text-center text-sm text-muted-foreground">No curated funds match this search.</div>
+              )}
+            </div>
+          </AnimatedCard>
         )}
 
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -269,7 +268,7 @@ function FundsPage() {
               const aName = a.schemeName.toLowerCase();
               const bName = b.schemeName.toLowerCase();
               const q = debouncedQuery.toLowerCase();
-              
+
               const aStarts = aName.startsWith(q);
               const bStarts = bName.startsWith(q);
               if (aStarts && !bStarts) return -1;
@@ -283,24 +282,24 @@ function FundsPage() {
               return a.schemeName.length - b.schemeName.length;
             })
             .map((f) => (
-            <button
-              key={f.schemeCode}
-              type="button"
-              onClick={() => {
-                setSelectedCode(f.schemeCode);
-                setSelectedFund(null);
-              }}
-              className="group flex flex-col rounded-3xl border border-border bg-card p-5 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:border-brand/50 hover:shadow-glow"
-            >
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                Code: {f.schemeCode}
-              </div>
-              <h3 className="font-semibold group-hover:text-brand line-clamp-2">{f.schemeName}</h3>
-              <div className="mt-3 flex items-center gap-1 text-xs font-medium text-brand opacity-0 transition-opacity group-hover:opacity-100">
-                View details →
-              </div>
-            </button>
-          ))}
+              <button
+                key={f.schemeCode}
+                type="button"
+                onClick={() => {
+                  setSelectedCode(f.schemeCode);
+                  setSelectedFund(null);
+                }}
+                className="group flex flex-col rounded-3xl border border-border bg-card p-5 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:border-brand/50 hover:shadow-glow"
+              >
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                  Code: {f.schemeCode}
+                </div>
+                <h3 className="font-semibold group-hover:text-brand line-clamp-2">{f.schemeName}</h3>
+                <div className="mt-3 flex items-center gap-1 text-xs font-medium text-brand opacity-0 transition-opacity group-hover:opacity-100">
+                  View details →
+                </div>
+              </button>
+            ))}
         </div>
       </section>
 
@@ -342,15 +341,15 @@ function CategoryRow({
       type="button"
       onClick={onSelect}
       className={cn(
-        "flex w-full items-center justify-between rounded-2xl border p-3 text-left transition-colors",
+        "flex w-full items-center justify-between rounded-2xl border p-2.5 sm:p-3 text-left transition-colors min-w-0 overflow-hidden",
         selected ? "border-brand bg-brand/5" : "border-border bg-background hover:bg-accent",
       )}
     >
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold">{category.label}</span>
-        <span className="mt-0.5 block truncate text-xs text-muted-foreground">{category.blurb}</span>
+      <span className="min-w-0 flex-1 pr-2">
+        <span className="block text-xs sm:text-sm font-semibold truncate">{category.label}</span>
+        <span className="mt-0.5 block truncate text-[11px] sm:text-xs text-muted-foreground">{category.blurb}</span>
       </span>
-      <span className="ml-3 shrink-0 rounded-full bg-accent px-2 py-1 text-[10px] font-semibold text-accent-foreground">
+      <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-semibold text-accent-foreground">
         {categoryFundCount} funds
       </span>
     </button>
@@ -367,29 +366,29 @@ function FeaturedFundSnapshot({ fund }: { fund: MutualFund }) {
     .join(" ");
 
   return (
-    <AnimatedCard delay={0.4} className="mt-5 rounded-2xl border border-border/70 bg-background p-4">
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
+    <AnimatedCard delay={0.4} className="mt-4 rounded-xl sm:rounded-2xl border border-border/70 bg-background p-3.5 sm:p-4 min-w-0 overflow-hidden">
+      <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
+        <div className="min-w-0">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Selected snapshot</div>
-          <h3 className="mt-1 font-semibold">{fund.name}</h3>
-          <p className="mt-1 text-xs text-muted-foreground">{fund.amc} · {fund.benchmark}</p>
+          <h3 className="mt-0.5 font-semibold text-xs sm:text-sm truncate">{fund.name}</h3>
+          <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground truncate">{fund.amc} · {fund.benchmark}</p>
         </div>
-        <Link to="/funds/compare" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-deep hover:underline">
+        <Link to="/funds/compare" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-deep hover:underline shrink-0">
           Compare funds <ArrowRight className="size-3.5" />
         </Link>
       </div>
-      <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_1.4fr] sm:items-center">
-        <div className="grid grid-cols-3 gap-2">
+      <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1.4fr] sm:items-center">
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           <SnapshotMetric label="3Y CAGR" value={`${fund.returns.y3.toFixed(1)}%`} positive />
           <SnapshotMetric label="5Y CAGR" value={`${fund.returns.y5.toFixed(1)}%`} positive />
           <SnapshotMetric label="Volatility" value={`${fund.volatilityStdDev.toFixed(1)}%`} />
         </div>
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
             <span>Recent return trend</span>
-            <span>1M · 3M · 6M · 1Y · 3Y</span>
+            <span className="hidden sm:inline">1M · 3M · 6M · 1Y · 3Y</span>
           </div>
-          <svg viewBox="0 0 100 42" preserveAspectRatio="none" className="mt-2 h-14 w-full overflow-visible">
+          <svg viewBox="0 0 100 42" preserveAspectRatio="none" className="mt-1.5 h-12 sm:h-14 w-full overflow-hidden">
             <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2.5" vectorEffect="non-scaling-stroke" className="text-brand" />
             {performance.map((value, index) => (
               <circle key={`${value}-${index}`} cx={(index / (performance.length - 1)) * 100} cy={36 - ((value - min) / range) * 28} r="1.8" className="fill-brand" />
@@ -397,7 +396,7 @@ function FeaturedFundSnapshot({ fund }: { fund: MutualFund }) {
           </svg>
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] sm:text-xs text-muted-foreground border-t border-border/40 pt-2.5">
         <span>Expense ratio <strong className="text-foreground">{fund.expenseRatio.toFixed(2)}%</strong></span>
         <span>Min SIP <strong className="text-foreground">₹{fund.minSip.toLocaleString("en-IN")}</strong></span>
         <span>Risk <strong className="text-foreground">{fund.risk}</strong></span>
@@ -408,9 +407,9 @@ function FeaturedFundSnapshot({ fund }: { fund: MutualFund }) {
 
 function SnapshotMetric({ label, value, positive = false }: { label: string; value: string; positive?: boolean }) {
   return (
-    <div className="rounded-xl border border-border p-2.5">
-      <div className="text-[9px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={cn("mt-1 text-sm font-bold", positive && "text-emerald-600 dark:text-emerald-400")}>{value}</div>
+    <div className="rounded-xl border border-border p-1.5 sm:p-2.5 text-center min-w-0 overflow-hidden">
+      <div className="text-[8px] sm:text-[9px] uppercase tracking-wide text-muted-foreground truncate">{label}</div>
+      <div className={cn("mt-0.5 text-xs sm:text-sm font-bold truncate", positive && "text-emerald-600 dark:text-emerald-400")}>{value}</div>
     </div>
   );
 }
@@ -440,16 +439,13 @@ function MiniPerformanceChart({ fund }: { fund: MutualFund }) {
   );
 }
 
-function CuratedFundDetailView({ fund, onClose }: { fund: MutualFund; onClose: () => void }) {
+function CuratedFundDetailView({ fund }: { fund: MutualFund; onClose?: () => void }) {
   return (
-    <div className="p-6 sm:p-0">
-      <SheetHeader className="mb-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <SheetTitle className="text-left text-xl leading-tight">{fund.name}</SheetTitle>
-            <SheetDescription className="mt-1 text-left">{fund.amc} · {fundCategoryLabel(fund.category)} · {fund.planType} plan</SheetDescription>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="-mr-2 shrink-0"><X className="size-4" /></Button>
+    <div className="p-2 sm:p-0">
+      <SheetHeader className="mb-6 pr-6">
+        <div>
+          <SheetTitle className="text-left text-xl leading-tight">{fund.name}</SheetTitle>
+          <SheetDescription className="mt-1 text-left">{fund.amc} · {fundCategoryLabel(fund.category)} · {fund.planType} plan</SheetDescription>
         </div>
       </SheetHeader>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -544,18 +540,13 @@ function FundDetailView({ code, onClose }: { code: number; onClose: () => void }
   const progress52 = high52 > low52 ? Math.min(100, Math.max(0, ((latestNav - low52) / (high52 - low52)) * 100)) : 50;
 
   return (
-    <div className="p-6 sm:p-0">
-      <SheetHeader className="mb-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <SheetTitle className="text-left text-xl leading-tight">{fund.meta.scheme_name}</SheetTitle>
-            <SheetDescription className="text-left mt-1">
-              {fund.meta.fund_house} · {fund.meta.scheme_category}
-            </SheetDescription>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0 -mr-2">
-            <X className="size-4" />
-          </Button>
+    <div className="p-2 sm:p-0">
+      <SheetHeader className="mb-6 pr-6">
+        <div>
+          <SheetTitle className="text-left text-xl leading-tight">{fund.meta.scheme_name}</SheetTitle>
+          <SheetDescription className="text-left mt-1">
+            {fund.meta.fund_house} · {fund.meta.scheme_category}
+          </SheetDescription>
         </div>
       </SheetHeader>
 
@@ -662,7 +653,7 @@ function MetricBox({ label, value, sub, positive }: { label: string; value: stri
   return (
     <div className="flex flex-col rounded-2xl border border-border bg-background p-3">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={cn("mt-1 text-lg font-semibold", 
+      <div className={cn("mt-1 text-lg font-semibold",
         positive === true && "text-emerald-600 dark:text-emerald-400",
         positive === false && "text-rose-600 dark:text-rose-400"
       )}>

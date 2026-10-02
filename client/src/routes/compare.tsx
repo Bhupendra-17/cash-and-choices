@@ -49,10 +49,10 @@ function ComparePage() {
     () =>
       a && b
         ? AXES.map((ax) => ({
-            axis: ax.label,
-            [a.name]: a.scores[ax.key],
-            [b.name]: b.scores[ax.key],
-          }))
+          axis: ax.label,
+          [a.name]: a.scores[ax.key],
+          [b.name]: b.scores[ax.key],
+        }))
         : [],
     [a, b],
   );
