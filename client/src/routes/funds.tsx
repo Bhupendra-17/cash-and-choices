@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -57,6 +57,8 @@ type FundDetail = {
 };
 
 function FundsPage() {
+  const { selectedIds, goToCompare } = useCompare();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 500);
   const [selectedCode, setSelectedCode] = useState<number | null>(null);
@@ -99,6 +101,8 @@ function FundsPage() {
     enabled: debouncedQuery.length >= 2,
   });
 
+  if (pathname !== "/funds") return <Outlet />;
+
   return (
     <SiteLayout>
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
@@ -113,8 +117,14 @@ function FundsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button asChild variant="outline" className="rounded-full">
-              <Link to="/funds/compare">Compare funds</Link>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={goToCompare}
+              disabled={selectedIds.length < 2}
+              className="rounded-full"
+            >
+              Compare ({selectedIds.length})
             </Button>
             <Button asChild className="rounded-full bg-gradient-brand text-white">
               <Link to="/calculators">Check returns</Link>
@@ -501,7 +511,7 @@ function CuratedFundDetailView({ fund }: { fund: MutualFund; onClose?: () => voi
             </span>
           )}
         </Button>
-        {selectedIds.length > 0 && (
+        {selectedIds.length > 1 && (
           <Button
             type="button"
             variant="outline"
@@ -704,7 +714,7 @@ function FundDetailView({ code, onClose }: { code: number; onClose: () => void }
             </span>
           )}
         </Button>
-        {selectedIds.length > 0 && (
+        {selectedIds.length > 1 && (
           <Button
             type="button"
             variant="outline"

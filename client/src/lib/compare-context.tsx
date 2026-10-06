@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { MUTUAL_FUNDS } from "@/data/mutualFunds";
 import { Check, X, ArrowRight, Scale, Trash2 } from "lucide-react";
 
@@ -46,14 +46,11 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
   const isFundSelected = (id: string) => selectedIds.includes(id);
 
   const goToCompare = () => {
-    if (selectedIds.length === 0) return;
-    const idsParam = selectedIds.length === 1 
-      ? `${selectedIds[0]},${MUTUAL_FUNDS.find((f) => f.id !== selectedIds[0])?.id ?? MUTUAL_FUNDS[1].id}`
-      : selectedIds.join(",");
+    if (selectedIds.length < 2) return;
 
     navigate({
       to: "/funds/compare",
-      search: { ids: idsParam },
+      search: { ids: selectedIds.join(",") },
     });
   };
 
@@ -84,8 +81,9 @@ export function useCompare() {
 
 function CompareTray({ fundNames }: { fundNames: Record<string, string> }) {
   const { selectedIds, toggleFund, removeFund, clearCompare, goToCompare } = useCompare();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
-  if (selectedIds.length === 0) return null;
+  if (selectedIds.length === 0 || pathname === "/funds/compare") return null;
 
   const funds = selectedIds.map((id) => {
     const curated = MUTUAL_FUNDS.find((f) => f.id === id);
@@ -154,9 +152,10 @@ function CompareTray({ fundNames }: { fundNames: Record<string, string> }) {
         <div className="mt-3 pt-2 border-t border-border/60">
           <button
             onClick={goToCompare}
-            className="w-full rounded-full bg-gradient-brand py-2.5 px-4 text-xs font-bold text-white shadow-glow flex items-center justify-center gap-2 hover:opacity-95 transition-all active:scale-[0.98]"
+            disabled={selectedIds.length < 2}
+            className="w-full rounded-full bg-gradient-brand py-2.5 px-4 text-xs font-bold text-white shadow-glow flex items-center justify-center gap-2 hover:opacity-95 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span>Compare Now ({selectedIds.length})</span>
+            <span>{selectedIds.length < 2 ? "Select 2 funds to compare" : `Compare (${selectedIds.length})`}</span>
             <ArrowRight className="size-4" />
           </button>
         </div>
