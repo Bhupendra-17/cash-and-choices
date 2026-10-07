@@ -46,7 +46,7 @@ export const Route = createFileRoute("/recommend")({
       {
         name: "description",
         content:
-          "Know before you invest. Answer 11 privacy-safe questions and receive a personalised financial profile analysis, investor persona, and zero-affiliate product guidance.",
+          "Know before you invest. Answer some privacy-safe questions and receive a personalised financial profile analysis, investor persona, and zero-affiliate product guidance.",
       },
       { property: "og:title", content: "Financial Decision Engine — Cash&Choices" },
       {
@@ -89,370 +89,370 @@ export const QUESTIONS: {
     tags?: string[];
   }[];
 }[] = [
-  {
-    id: "goal",
-    title: "What's your #1 financial priority right now?",
-    subtitle: "This shapes everything — your product type, horizon, and risk profile.",
-    educationalNote:
-      "Different goals need completely different strategies. Retirement needs long-term compounding; family protection needs insurance; short-term goals need liquidity.",
-    options: [
-      {
-        value: "grow",
-        label: "Build long-term wealth",
-        sublabel: "Grow money through compounding over 5+ years",
-        tags: ["long_term", "passive"],
-      },
-      {
-        value: "protect",
-        label: "Protect my family",
-        sublabel: "Life cover, health cover, income replacement",
-        tags: ["family_cover"],
-      },
-      {
-        value: "retire",
-        label: "Plan for retirement",
-        sublabel: "Build a corpus for financial independence",
-        tags: ["retirement", "long_term"],
-      },
-      {
-        value: "liquid",
-        label: "Keep money safe & accessible",
-        sublabel: "Park surplus without locking it away",
-        tags: ["safety", "short_term"],
-      },
-    ],
-  },
-  {
-    id: "horizon",
-    title: "How long can you stay invested without touching this money?",
-    subtitle: "Time in the market is your biggest advantage. Longer horizon = more growth potential.",
-    educationalNote:
-      "Equity markets can be volatile short-term but have historically delivered 12–15% CAGR over 10+ years. Short horizons demand safer, liquid options.",
-    options: [
-      {
-        value: "s",
-        label: "Less than 2 years",
-        sublabel: "Short-term — keep liquidity high",
-        tags: ["short_term"],
-      },
-      {
-        value: "m",
-        label: "2 – 5 years",
-        sublabel: "Medium-term — some growth possible with managed risk",
-        tags: [],
-      },
-      {
-        value: "l",
-        label: "5 – 10 years",
-        sublabel: "Long-term — compounding really kicks in here",
-        tags: ["long_term"],
-      },
-      {
-        value: "xl",
-        label: "10+ years",
-        sublabel: "Very long-term — ideal for equity & retirement corpus",
-        tags: ["long_term", "retirement"],
-      },
-    ],
-  },
-  {
-    id: "risk",
-    title: "Markets crash 25% in 6 months. What do you actually do?",
-    subtitle: "Be honest — your gut reaction defines your real risk tolerance, not what you think it should be.",
-    educationalNote:
-      "Market corrections are normal. The Sensex has crashed 40%+ four times since 2000 — and recovered to new highs every time. Your reaction here determines your ideal asset allocation.",
-    options: [
-      {
-        value: "cant",
-        label: "I exit immediately",
-        sublabel: "Capital safety is non-negotiable for me",
-        tags: ["safety"],
-      },
-      {
-        value: "wobble",
-        label: "I'm stressed but I'll hold",
-        sublabel: "Uncomfortable, but I'll trust the process",
-        tags: [],
-      },
-      {
-        value: "fine",
-        label: "It's a normal market cycle",
-        sublabel: "I accept volatility for long-term gains",
-        tags: ["long_term"],
-      },
-      {
-        value: "add",
-        label: "I'd invest more at lower prices",
-        sublabel: "I see it as a buying opportunity",
-        tags: ["long_term", "active"],
-      },
-    ],
-  },
-  {
-    id: "monthly",
-    title: "How much can you comfortably invest each month?",
-    subtitle: "This is used only in-browser to shape your strategy. We store nothing.",
-    educationalNote:
-      "Consistency beats amount. A ₹1,000/month SIP started at 25 can grow to ₹3.5 Cr by age 60 at 12% CAGR. Time is your biggest asset.",
-    options: [
-      {
-        value: "lt5",
-        label: "Under ₹5,000",
-        sublabel: "SIP from ₹500 is possible — start small, stay consistent",
-        tags: ["beginner", "low_fees"],
-      },
-      {
-        value: "5to20",
-        label: "₹5,000 – ₹20,000",
-        sublabel: "Good range for diversified 2–3 fund SIPs",
-        tags: ["low_fees"],
-      },
-      {
-        value: "20to50",
-        label: "₹20,000 – ₹50,000",
-        sublabel: "Can build a multi-fund portfolio with rebalancing",
-        tags: [],
-      },
-      {
-        value: "50plus",
-        label: "₹50,000+",
-        sublabel: "Multi-asset strategies, direct equity & PMS possible",
-        tags: ["high_spend"],
-      },
-    ],
-  },
-  {
-    id: "income",
-    title: "What's your approximate monthly take-home income?",
-    subtitle: "Helps calibrate your investment-to-income ratio and suitable product types.",
-    educationalNote:
-      "A common rule: invest at least 20% of take-home income. Higher income means tax efficiency matters more. We recommend the 50-30-20 split (needs / wants / savings).",
-    options: [
-      {
-        value: "lt30",
-        label: "Under ₹30,000",
-        sublabel: "Early-career or part-time — build emergency fund first",
-        tags: [],
-      },
-      {
-        value: "30to75",
-        label: "₹30,000 – ₹75,000",
-        sublabel: "Mid-range salaried — good scope for SIPs & insurance",
-        tags: [],
-      },
-      {
-        value: "75to200",
-        label: "₹75,000 – ₹2L",
-        sublabel: "Upper-mid income — tax planning becomes very important",
-        tags: [],
-      },
-      {
-        value: "200plus",
-        label: "₹2L+",
-        sublabel: "High income — tax efficiency & advanced strategies matter",
-        tags: ["high_spend"],
-      },
-    ],
-  },
-  {
-    id: "taxBracket",
-    title: "Which income tax slab applies to you?",
-    subtitle: "Your tax bracket dramatically changes which investment is actually better after-tax.",
-    educationalNote:
-      "At 30% tax bracket, a debt mutual fund held 3+ years often beats an FD after tax and indexation benefit. At lower brackets, FDs can be fine. Knowing your slab is critical.",
-    options: [
-      {
-        value: "nil",
-        label: "No tax / Below exemption",
-        sublabel: "Income under ₹3L — new tax regime",
-        tags: [],
-      },
-      {
-        value: "10",
-        label: "5% – 10% slab",
-        sublabel: "Income ₹3L – ₹7L — tax impact is low",
-        tags: [],
-      },
-      {
-        value: "20",
-        label: "15% – 20% slab",
-        sublabel: "Income ₹7L – ₹12L — tax efficiency starts to matter",
-        tags: [],
-      },
-      {
-        value: "30",
-        label: "30% slab",
-        sublabel: "Income ₹12L+ — tax efficiency is critical for returns",
-        tags: [],
-      },
-    ],
-  },
-  {
-    id: "savings",
-    title: "How strong is your financial safety net right now?",
-    subtitle: "An emergency fund is the foundation of every investment strategy.",
-    educationalNote:
-      "Rule of thumb: Keep 3–6 months of expenses in a liquid fund or savings account before investing aggressively. This prevents forced selling during market downturns.",
-    options: [
-      {
-        value: "none",
-        label: "Almost nothing",
-        sublabel: "Less than 1 month — build this first",
-        tags: ["safety", "beginner"],
-      },
-      {
-        value: "1to3",
-        label: "1 – 3 months of expenses",
-        sublabel: "Partial safety net — consider topping up before investing",
-        tags: [],
-      },
-      {
-        value: "3to6",
-        label: "3 – 6 months of expenses",
-        sublabel: "Healthy buffer — ready to invest more confidently",
-        tags: [],
-      },
-      {
-        value: "6plus",
-        label: "6+ months of expenses",
-        sublabel: "Strong safety net — full investing mode",
-        tags: ["long_term"],
-      },
-    ],
-  },
-  {
-    id: "withdrawalNeeds",
-    title: "How likely are you to need this invested money early?",
-    subtitle: "Liquidity preference determines whether lock-in products are suitable for you.",
-    educationalNote:
-      "ELSS funds have a 3-year lock-in. NPS locks until 60. But they give significant tax benefits. If you might need early access, liquid funds are better even if returns are lower.",
-    options: [
-      {
-        value: "very_likely",
-        label: "Very likely — could need it anytime",
-        sublabel: "Prefer high-liquidity options only",
-        tags: ["safety", "short_term"],
-      },
-      {
-        value: "possible",
-        label: "Possible in 1–2 years",
-        sublabel: "Avoid products with long lock-in or exit loads",
-        tags: [],
-      },
-      {
-        value: "unlikely",
-        label: "Unlikely — I'm disciplined",
-        sublabel: "Can consider some exit loads for better returns",
-        tags: ["long_term"],
-      },
-      {
-        value: "never",
-        label: "Never — strictly long-term",
-        sublabel: "Lock-in products like ELSS, NPS, PPF are perfectly fine",
-        tags: ["long_term", "retirement"],
-      },
-    ],
-  },
-  {
-    id: "investments",
-    title: "What financial products have you actually used before?",
-    subtitle: "Honest answer helps us skip beginner explanations if you're already experienced.",
-    educationalNote:
-      "No prior experience doesn't mean starting small. It means starting smart — with simple, low-cost index funds rather than complex active strategies.",
-    options: [
-      {
-        value: "none",
-        label: "Nothing yet — I'm starting fresh",
-        sublabel: "First-time investor — beginner-friendly options first",
-        tags: ["beginner", "passive"],
-      },
-      {
-        value: "fd",
-        label: "FDs and savings accounts only",
-        sublabel: "Conservative base — ready to explore market-linked options",
-        tags: ["safety"],
-      },
-      {
-        value: "mf",
-        label: "Mutual Funds / SIPs",
-        sublabel: "Comfortable with NAV-based market-linked products",
-        tags: [],
-      },
-      {
-        value: "stocks",
-        label: "Stocks, ETFs, or advanced instruments",
-        sublabel: "Experienced — open to sophisticated multi-asset strategies",
-        tags: ["active"],
-      },
-    ],
-  },
-  {
-    id: "priority",
-    title: "What matters most to you in an investment?",
-    subtitle: "No right or wrong answer — this defines your core financial philosophy.",
-    educationalNote:
-      "A 1% difference in expense ratio costs you ₹5.3L more over 20 years on a ₹10,000/month SIP. Fees compound just like returns do.",
-    options: [
-      {
-        value: "fees",
-        label: "Minimal fees & charges",
-        sublabel: "Every 0.5% saved in fees means lakhs more over 10 years",
-        tags: ["low_fees"],
-      },
-      {
-        value: "simple",
-        label: "Easy to understand & manage",
-        sublabel: "Clear, no-jargon options I can explain to anyone",
-        tags: ["beginner", "passive"],
-      },
-      {
-        value: "returns",
-        label: "Maximum possible returns",
-        sublabel: "I accept higher volatility and risk for higher reward",
-        tags: ["active"],
-      },
-      {
-        value: "tax",
-        label: "Tax savings & efficiency",
-        sublabel: "I want to minimize what I lose to taxes every year",
-        tags: ["low_fees"],
-      },
-    ],
-  },
-  {
-    id: "interest",
-    title: "Which investment category are you most keen to explore?",
-    subtitle: "We'll give you deeper insights about your chosen category in the analysis.",
-    educationalNote:
-      "Diversification across categories reduces overall portfolio risk. Don't concentrate everything in one place — but start with what you understand best.",
-    options: [
-      {
-        value: "mf",
-        label: "Mutual Funds / SIPs",
-        sublabel: "Diversified, professionally managed, flexible amounts",
-        tags: ["passive", "active"],
-      },
-      {
-        value: "fd_bonds",
-        label: "FDs, Bonds & Debt Instruments",
-        sublabel: "Predictable, low-risk fixed income",
-        tags: ["safety"],
-      },
-      {
-        value: "gold",
-        label: "Gold & Commodities",
-        sublabel: "Inflation hedge, portfolio diversifier",
-        tags: ["gold"],
-      },
-      {
-        value: "insurance",
-        label: "Insurance & Protection",
-        sublabel: "Life cover, health & income protection products",
-        tags: ["family_cover"],
-      },
-    ],
-  },
-];
+    {
+      id: "goal",
+      title: "What's your #1 financial priority right now?",
+      subtitle: "This shapes everything — your product type, horizon, and risk profile.",
+      educationalNote:
+        "Different goals need completely different strategies. Retirement needs long-term compounding; family protection needs insurance; short-term goals need liquidity.",
+      options: [
+        {
+          value: "grow",
+          label: "Build long-term wealth",
+          sublabel: "Grow money through compounding over 5+ years",
+          tags: ["long_term", "passive"],
+        },
+        {
+          value: "protect",
+          label: "Protect my family",
+          sublabel: "Life cover, health cover, income replacement",
+          tags: ["family_cover"],
+        },
+        {
+          value: "retire",
+          label: "Plan for retirement",
+          sublabel: "Build a corpus for financial independence",
+          tags: ["retirement", "long_term"],
+        },
+        {
+          value: "liquid",
+          label: "Keep money safe & accessible",
+          sublabel: "Park surplus without locking it away",
+          tags: ["safety", "short_term"],
+        },
+      ],
+    },
+    {
+      id: "horizon",
+      title: "How long can you stay invested without touching this money?",
+      subtitle: "Time in the market is your biggest advantage. Longer horizon = more growth potential.",
+      educationalNote:
+        "Equity markets can be volatile short-term but have historically delivered 12–15% CAGR over 10+ years. Short horizons demand safer, liquid options.",
+      options: [
+        {
+          value: "s",
+          label: "Less than 2 years",
+          sublabel: "Short-term — keep liquidity high",
+          tags: ["short_term"],
+        },
+        {
+          value: "m",
+          label: "2 – 5 years",
+          sublabel: "Medium-term — some growth possible with managed risk",
+          tags: [],
+        },
+        {
+          value: "l",
+          label: "5 – 10 years",
+          sublabel: "Long-term — compounding really kicks in here",
+          tags: ["long_term"],
+        },
+        {
+          value: "xl",
+          label: "10+ years",
+          sublabel: "Very long-term — ideal for equity & retirement corpus",
+          tags: ["long_term", "retirement"],
+        },
+      ],
+    },
+    {
+      id: "risk",
+      title: "Markets crash 25% in 6 months. What do you actually do?",
+      subtitle: "Be honest — your gut reaction defines your real risk tolerance, not what you think it should be.",
+      educationalNote:
+        "Market corrections are normal. The Sensex has crashed 40%+ four times since 2000 — and recovered to new highs every time. Your reaction here determines your ideal asset allocation.",
+      options: [
+        {
+          value: "cant",
+          label: "I exit immediately",
+          sublabel: "Capital safety is non-negotiable for me",
+          tags: ["safety"],
+        },
+        {
+          value: "wobble",
+          label: "I'm stressed but I'll hold",
+          sublabel: "Uncomfortable, but I'll trust the process",
+          tags: [],
+        },
+        {
+          value: "fine",
+          label: "It's a normal market cycle",
+          sublabel: "I accept volatility for long-term gains",
+          tags: ["long_term"],
+        },
+        {
+          value: "add",
+          label: "I'd invest more at lower prices",
+          sublabel: "I see it as a buying opportunity",
+          tags: ["long_term", "active"],
+        },
+      ],
+    },
+    {
+      id: "monthly",
+      title: "How much can you comfortably invest each month?",
+      subtitle: "This is used only in-browser to shape your strategy. We store nothing.",
+      educationalNote:
+        "Consistency beats amount. A ₹1,000/month SIP started at 25 can grow to ₹3.5 Cr by age 60 at 12% CAGR. Time is your biggest asset.",
+      options: [
+        {
+          value: "lt5",
+          label: "Under ₹5,000",
+          sublabel: "SIP from ₹500 is possible — start small, stay consistent",
+          tags: ["beginner", "low_fees"],
+        },
+        {
+          value: "5to20",
+          label: "₹5,000 – ₹20,000",
+          sublabel: "Good range for diversified 2–3 fund SIPs",
+          tags: ["low_fees"],
+        },
+        {
+          value: "20to50",
+          label: "₹20,000 – ₹50,000",
+          sublabel: "Can build a multi-fund portfolio with rebalancing",
+          tags: [],
+        },
+        {
+          value: "50plus",
+          label: "₹50,000+",
+          sublabel: "Multi-asset strategies, direct equity & PMS possible",
+          tags: ["high_spend"],
+        },
+      ],
+    },
+    {
+      id: "income",
+      title: "What's your approximate monthly take-home income?",
+      subtitle: "Helps calibrate your investment-to-income ratio and suitable product types.",
+      educationalNote:
+        "A common rule: invest at least 20% of take-home income. Higher income means tax efficiency matters more. We recommend the 50-30-20 split (needs / wants / savings).",
+      options: [
+        {
+          value: "lt30",
+          label: "Under ₹30,000",
+          sublabel: "Early-career or part-time — build emergency fund first",
+          tags: [],
+        },
+        {
+          value: "30to75",
+          label: "₹30,000 – ₹75,000",
+          sublabel: "Mid-range salaried — good scope for SIPs & insurance",
+          tags: [],
+        },
+        {
+          value: "75to200",
+          label: "₹75,000 – ₹2L",
+          sublabel: "Upper-mid income — tax planning becomes very important",
+          tags: [],
+        },
+        {
+          value: "200plus",
+          label: "₹2L+",
+          sublabel: "High income — tax efficiency & advanced strategies matter",
+          tags: ["high_spend"],
+        },
+      ],
+    },
+    {
+      id: "taxBracket",
+      title: "Which income tax slab applies to you?",
+      subtitle: "Your tax bracket dramatically changes which investment is actually better after-tax.",
+      educationalNote:
+        "At 30% tax bracket, a debt mutual fund held 3+ years often beats an FD after tax and indexation benefit. At lower brackets, FDs can be fine. Knowing your slab is critical.",
+      options: [
+        {
+          value: "nil",
+          label: "No tax / Below exemption",
+          sublabel: "Income under ₹3L — new tax regime",
+          tags: [],
+        },
+        {
+          value: "10",
+          label: "5% – 10% slab",
+          sublabel: "Income ₹3L – ₹7L — tax impact is low",
+          tags: [],
+        },
+        {
+          value: "20",
+          label: "15% – 20% slab",
+          sublabel: "Income ₹7L – ₹12L — tax efficiency starts to matter",
+          tags: [],
+        },
+        {
+          value: "30",
+          label: "30% slab",
+          sublabel: "Income ₹12L+ — tax efficiency is critical for returns",
+          tags: [],
+        },
+      ],
+    },
+    {
+      id: "savings",
+      title: "How strong is your financial safety net right now?",
+      subtitle: "An emergency fund is the foundation of every investment strategy.",
+      educationalNote:
+        "Rule of thumb: Keep 3–6 months of expenses in a liquid fund or savings account before investing aggressively. This prevents forced selling during market downturns.",
+      options: [
+        {
+          value: "none",
+          label: "Almost nothing",
+          sublabel: "Less than 1 month — build this first",
+          tags: ["safety", "beginner"],
+        },
+        {
+          value: "1to3",
+          label: "1 – 3 months of expenses",
+          sublabel: "Partial safety net — consider topping up before investing",
+          tags: [],
+        },
+        {
+          value: "3to6",
+          label: "3 – 6 months of expenses",
+          sublabel: "Healthy buffer — ready to invest more confidently",
+          tags: [],
+        },
+        {
+          value: "6plus",
+          label: "6+ months of expenses",
+          sublabel: "Strong safety net — full investing mode",
+          tags: ["long_term"],
+        },
+      ],
+    },
+    {
+      id: "withdrawalNeeds",
+      title: "How likely are you to need this invested money early?",
+      subtitle: "Liquidity preference determines whether lock-in products are suitable for you.",
+      educationalNote:
+        "ELSS funds have a 3-year lock-in. NPS locks until 60. But they give significant tax benefits. If you might need early access, liquid funds are better even if returns are lower.",
+      options: [
+        {
+          value: "very_likely",
+          label: "Very likely — could need it anytime",
+          sublabel: "Prefer high-liquidity options only",
+          tags: ["safety", "short_term"],
+        },
+        {
+          value: "possible",
+          label: "Possible in 1–2 years",
+          sublabel: "Avoid products with long lock-in or exit loads",
+          tags: [],
+        },
+        {
+          value: "unlikely",
+          label: "Unlikely — I'm disciplined",
+          sublabel: "Can consider some exit loads for better returns",
+          tags: ["long_term"],
+        },
+        {
+          value: "never",
+          label: "Never — strictly long-term",
+          sublabel: "Lock-in products like ELSS, NPS, PPF are perfectly fine",
+          tags: ["long_term", "retirement"],
+        },
+      ],
+    },
+    {
+      id: "investments",
+      title: "What financial products have you actually used before?",
+      subtitle: "Honest answer helps us skip beginner explanations if you're already experienced.",
+      educationalNote:
+        "No prior experience doesn't mean starting small. It means starting smart — with simple, low-cost index funds rather than complex active strategies.",
+      options: [
+        {
+          value: "none",
+          label: "Nothing yet — I'm starting fresh",
+          sublabel: "First-time investor — beginner-friendly options first",
+          tags: ["beginner", "passive"],
+        },
+        {
+          value: "fd",
+          label: "FDs and savings accounts only",
+          sublabel: "Conservative base — ready to explore market-linked options",
+          tags: ["safety"],
+        },
+        {
+          value: "mf",
+          label: "Mutual Funds / SIPs",
+          sublabel: "Comfortable with NAV-based market-linked products",
+          tags: [],
+        },
+        {
+          value: "stocks",
+          label: "Stocks, ETFs, or advanced instruments",
+          sublabel: "Experienced — open to sophisticated multi-asset strategies",
+          tags: ["active"],
+        },
+      ],
+    },
+    {
+      id: "priority",
+      title: "What matters most to you in an investment?",
+      subtitle: "No right or wrong answer — this defines your core financial philosophy.",
+      educationalNote:
+        "A 1% difference in expense ratio costs you ₹5.3L more over 20 years on a ₹10,000/month SIP. Fees compound just like returns do.",
+      options: [
+        {
+          value: "fees",
+          label: "Minimal fees & charges",
+          sublabel: "Every 0.5% saved in fees means lakhs more over 10 years",
+          tags: ["low_fees"],
+        },
+        {
+          value: "simple",
+          label: "Easy to understand & manage",
+          sublabel: "Clear, no-jargon options I can explain to anyone",
+          tags: ["beginner", "passive"],
+        },
+        {
+          value: "returns",
+          label: "Maximum possible returns",
+          sublabel: "I accept higher volatility and risk for higher reward",
+          tags: ["active"],
+        },
+        {
+          value: "tax",
+          label: "Tax savings & efficiency",
+          sublabel: "I want to minimize what I lose to taxes every year",
+          tags: ["low_fees"],
+        },
+      ],
+    },
+    {
+      id: "interest",
+      title: "Which investment category are you most keen to explore?",
+      subtitle: "We'll give you deeper insights about your chosen category in the analysis.",
+      educationalNote:
+        "Diversification across categories reduces overall portfolio risk. Don't concentrate everything in one place — but start with what you understand best.",
+      options: [
+        {
+          value: "mf",
+          label: "Mutual Funds / SIPs",
+          sublabel: "Diversified, professionally managed, flexible amounts",
+          tags: ["passive", "active"],
+        },
+        {
+          value: "fd_bonds",
+          label: "FDs, Bonds & Debt Instruments",
+          sublabel: "Predictable, low-risk fixed income",
+          tags: ["safety"],
+        },
+        {
+          value: "gold",
+          label: "Gold & Commodities",
+          sublabel: "Inflation hedge, portfolio diversifier",
+          tags: ["gold"],
+        },
+        {
+          value: "insurance",
+          label: "Insurance & Protection",
+          sublabel: "Life cover, health & income protection products",
+          tags: ["family_cover"],
+        },
+      ],
+    },
+  ];
 
 // ─── Tag Extraction ─────────────────────────────────────────────────────────────
 function tagsFrom(a: Partial<Answers>) {
@@ -595,9 +595,9 @@ function computeFinancialProfile(a: Partial<Answers>): FinancialProfile {
   const healthScore = getHealthScore();
   const healthLabel =
     healthScore >= 80 ? "Excellent" :
-    healthScore >= 65 ? "Strong" :
-    healthScore >= 50 ? "Moderate" :
-    healthScore >= 35 ? "Developing" : "Needs Attention";
+      healthScore >= 65 ? "Strong" :
+        healthScore >= 50 ? "Moderate" :
+          healthScore >= 35 ? "Developing" : "Needs Attention";
 
   // ── Key Insights ──────────────────────────────────────────────────
   const getInsights = (): ProfileInsight[] => {
@@ -992,15 +992,15 @@ function FinancialProfileAnalysis({ profile }: { profile: FinancialProfile }) {
 
   const scoreColor =
     healthScore >= 80 ? "text-emerald-500" :
-    healthScore >= 65 ? "text-blue-500" :
-    healthScore >= 50 ? "text-yellow-500" :
-    healthScore >= 35 ? "text-orange-500" : "text-red-500";
+      healthScore >= 65 ? "text-blue-500" :
+        healthScore >= 50 ? "text-yellow-500" :
+          healthScore >= 35 ? "text-orange-500" : "text-red-500";
 
   const scoreBg =
     healthScore >= 80 ? "bg-emerald-500" :
-    healthScore >= 65 ? "bg-blue-500" :
-    healthScore >= 50 ? "bg-yellow-500" :
-    healthScore >= 35 ? "bg-orange-500" : "bg-red-500";
+      healthScore >= 65 ? "bg-blue-500" :
+        healthScore >= 50 ? "bg-yellow-500" :
+          healthScore >= 35 ? "bg-orange-500" : "bg-red-500";
 
   const insightIcon = (type: ProfileInsight["type"]) => {
     if (type === "warning") return <AlertTriangle className="mt-0.5 size-4 shrink-0 text-orange-500" />;
@@ -1061,9 +1061,9 @@ function FinancialProfileAnalysis({ profile }: { profile: FinancialProfile }) {
                 className={cn(
                   "flex items-start gap-3 rounded-xl p-3 text-sm",
                   ins.type === "warning" ? "bg-orange-500/10 text-orange-900 dark:text-orange-300" :
-                  ins.type === "tip" ? "bg-brand/10 text-foreground" :
-                  ins.type === "success" ? "bg-emerald-500/10 text-emerald-900 dark:text-emerald-300" :
-                  "bg-blue-500/10 text-foreground"
+                    ins.type === "tip" ? "bg-brand/10 text-foreground" :
+                      ins.type === "success" ? "bg-emerald-500/10 text-emerald-900 dark:text-emerald-300" :
+                        "bg-blue-500/10 text-foreground"
                 )}
               >
                 {insightIcon(ins.type)}
@@ -1091,7 +1091,7 @@ function AIInsightCard({ state }: { state: AIState }) {
         <Loader2 className="size-5 animate-spin text-brand" />
         <div>
           <div className="font-medium text-foreground">AI Financial Mentor is analysing your profile…</div>
-          <div className="mt-0.5 text-xs">Generating personalised insights based on your 11 answers.</div>
+          <div className="mt-0.5 text-xs">Generating personalised insights based on your selected answers.</div>
         </div>
       </div>
     );

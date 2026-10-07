@@ -8,7 +8,7 @@ Cash & Choices stands out in a crowded market by prioritizing **privacy, educati
 
 | Feature | Market Standard | Cash & Choices Uniqueness |
 | :--- | :--- | :--- |
-| **Financial Decision Engine** | Requires bank logins, PAN, or portfolio uploads to generate a profile. | **100% Zero-PII.** Asks 11 behavioral questions to build a highly accurate investor persona without ever touching sensitive data. |
+| **Financial Decision Engine** | Requires bank logins, PAN, or portfolio uploads to generate a profile. | **100% Zero-PII.** Asks some behavioral questions to build a highly accurate investor persona without ever touching sensitive data. |
 | **Recommendation Engine** | Driven by affiliate commissions and sponsored placements. | **Zero-Affiliate.** Picks are curated objectively based on cost, consistency, and risk-adjusted returns with plain-English reasons for every pick. |
 | **Hidden Charges Explorer** | Buried in fine print, PDFs, and obscure terms & conditions. | **Visual & Transparent.** Brings brokerage, GST, expense ratios, and penalties to the forefront before the user commits. |
 | **Calculators Hub** | Basic outputs, often used as lead-generation forms demanding an email. | **Local-First & Comprehensive.** Runs offline. Factors in real-world constraints like inflation, tax brackets, and effective returns. |
