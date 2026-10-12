@@ -27,17 +27,17 @@ import { AnimatedCard } from "@/components/AnimatedCard";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Cash&Choices — Smarter financial decisions. Privately." },
+      { title: "Cash&Choices — Financial literacy for everyone" },
       {
         name: "description",
         content:
-          "Questionnaires, calculators and honest comparisons no bank login, no PAN, no financial secrets. Privacy is the feature without any commissions from third-party.",
+          "A financial literacy platform to learn money terms, explore financial options, and compare facts for educational purposes.",
       },
-      { property: "og:title", content: "Cash&Choices — Smarter financial decisions. Privately." },
+      { property: "og:title", content: "Cash&Choices — Financial literacy for everyone" },
       {
         property: "og:description",
         content:
-          "Questionnaires, calculators and honest comparisons no bank login, no PAN, no financial secrets. Privacy is the feature without any commissions from third-party.",
+          "A financial literacy platform to learn money terms, explore financial options, and compare facts for educational purposes.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -49,8 +49,8 @@ export const Route = createFileRoute("/")({
 const features = [
   {
     icon: Sparkles,
-    title: "Zero-affiliate recommendations",
-    body: "Answer a short questionnaire. Get products that fit — with a plain-English reason for every pick.",
+    title: "Learn about financial options",
+    body: "Explore how common financial products work, what they cost, and what questions to ask.",
   },
   {
     icon: EyeOff,
@@ -64,8 +64,8 @@ const features = [
   },
   {
     icon: BarChart3,
-    title: "Decision scores",
-    body: "Risk, liquidity, transparency, tax efficiency and hidden-cost scores at a glance.",
+    title: "Understand the trade-offs",
+    body: "Read about risk, liquidity, costs, and tax considerations without scores or rankings.",
   },
   {
     icon: Percent,
@@ -75,7 +75,7 @@ const features = [
   {
     icon: ShieldCheck,
     title: "Educational, always",
-    body: "Not advice. Just clarity. We explain the ‘why’ so you can decide with confidence.",
+    body: "Educational information to help you build financial literacy and make your own decisions.",
   },
 ];
 
@@ -111,7 +111,7 @@ const testimonials = [
   },
   {
     quote:
-      "The decision score made the trade-offs obvious. No more spreadsheet weekends.",
+      "The plain-English explanations helped me understand the questions to ask before comparing options.",
     name: "Priya N.",
     role: "Founder",
   },
@@ -124,11 +124,11 @@ const faqs = [
   },
   {
     q: "How do you make money without affiliate links?",
-    a: "We plan to launch a small optional Pro tier for advanced calculators and unlimited comparisons. Recommendations will never be influenced by payouts.",
+    a: "We aim to offer useful financial education and tools. We do not rank products or sell personalized recommendations.",
   },
   {
     q: "Is this financial advice?",
-    a: "No — this is educational content and decision tooling. For personalised regulated advice, consult a SEBI-registered advisor.",
+    a: "Cash&Choices provides general educational information only. It does not provide investment advice, personalized recommendations, or a solicitation to buy or sell securities. Consider speaking with a SEBI-registered investment adviser for advice specific to you.",
   },
   {
     q: "Where is my data stored?",
@@ -145,26 +145,31 @@ function LandingPage() {
           <div className="lg:col-span-7">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-white/70 px-3 py-1 text-xs font-medium text-brand-deep shadow-soft backdrop-blur">
               <ShieldCheck className="size-3.5" />
-              Privacy is the feature
+              Financial literacy for everyone
             </div>
             <h1 className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-              Find your next money move.{" "}
-              <span className="text-gradient-brand">Privately.</span>
+              Understand your money.{" "}
+              <span className="text-gradient-brand">Make your own choices.</span>
             </h1>
             <p className="mt-5 max-w-xl text-lg text-muted-foreground">
-              Start with your goal, understand your trade-offs, then choose with confidence.
-              No bank login, PAN or portfolio upload required.
+              Learn financial terms, explore common options, and compare costs and trade-offs
+              in plain language. No rankings, scores, or personalized investment picks.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button asChild size="lg" className="rounded-full bg-gradient-brand text-white shadow-glow hover:opacity-95">
                 <Link to="/recommend">
-                  Get my recommendations <ArrowRight className="ml-1 size-4" />
+                  Explore financial options <ArrowRight className="ml-1 size-4" />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="rounded-full border-border/70 bg-white/70 backdrop-blur">
                 <Link to="/charges">Explore hidden charges</Link>
               </Button>
             </div>
+            <p className="mt-4 max-w-xl rounded-xl border border-brand/20 bg-white/70 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+              Cash&amp;Choices is a financial literacy platform. Content and comparisons are for
+              education only—not investment advice, personalized recommendations, or a solicitation
+              to buy or sell. We do not score or rank products.
+            </p>
             <dl className="mt-10 grid max-w-lg grid-cols-3 gap-6 text-sm">
               {[
                 ["0", "Data points required"],
@@ -184,15 +189,15 @@ function LandingPage() {
             <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-white/70 shadow-card backdrop-blur">
               <img
                 src="/poster1.jpg"
-                alt="A Cash and Choices investor reviewing transparency and hidden cost scores"
+                alt="A person learning about financial choices and comparing costs"
                 className="aspect-[4/3] w-full object-cover"
               />
               <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/60 bg-white/85 p-4 shadow-soft backdrop-blur-sm">
                 <div className="flex items-center gap-2 text-sm font-semibold text-brand-deep">
-                  <Wallet className="size-4" /> Clear scores before you choose
+                  <Wallet className="size-4" /> Learn the terms. Compare the facts.
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Compare transparency, hidden costs and real trade-offs in one place.
+                  Explore financial concepts and understand common costs and trade-offs.
                 </p>
               </div>
             </div>
@@ -206,16 +211,16 @@ function LandingPage() {
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
-                <Compass className="size-3.5" /> Your decision path
+                <Compass className="size-3.5" /> Your learning path
               </div>
-              <h2 className="mt-4 text-3xl font-bold sm:text-4xl">Less searching. More knowing.</h2>
+              <h2 className="mt-4 text-3xl font-bold sm:text-4xl">Start learning at your own pace.</h2>
               <p className="mt-3 text-muted-foreground">
-                Cash&amp;Choices turns a broad investment question into a few clear next steps.
-                You can pause, learn a term, and continue whenever you are ready.
+                Build your financial literacy one topic at a time. Explore concepts, understand
+                possible trade-offs, and decide what you want to learn next.
               </p>
             </div>
             <Button asChild className="w-fit rounded-full bg-gradient-brand text-white shadow-glow">
-              <Link to="/recommend">Start with my goal <ArrowRight className="ml-1 size-4" /></Link>
+              <Link to="/recommend">Choose a topic to learn <ArrowRight className="ml-1 size-4" /></Link>
             </Button>
           </div>
 
@@ -224,20 +229,20 @@ function LandingPage() {
               {
                 number: "01",
                 icon: Sparkles,
-                title: "Tell us what matters",
-                body: "Answer a short set of private questions about your goal, time and comfort with risk.",
+                title: "Choose a topic",
+                body: "Start with a financial concept, product type, or term you want to understand.",
               },
               {
                 number: "02",
                 icon: BookOpenCheck,
-                title: "Understand your fit",
-                body: "Get a simple investor profile, the reason behind each match, and the risks to watch.",
+                title: "Learn the concepts",
+                body: "Read plain-language explanations of common features, risks, costs, and trade-offs.",
               },
               {
                 number: "03",
                 icon: Scale,
-                title: "Check before you choose",
-                body: "Use a calculator, compare two options, or unpack a charge before taking action.",
+                title: "Explore the facts",
+                body: "Use calculators, compare details, and unpack charges as part of your own research.",
               },
             ].map((step, index) => (
               <AnimatedCard delay={index * 0.1} key={step.number} className="rounded-3xl border border-border/70 bg-card p-6 shadow-soft">
@@ -348,8 +353,7 @@ function LandingPage() {
           <div>
             <h2 className="text-3xl font-bold sm:text-4xl">Tools that respect your time</h2>
             <p className="mt-2 max-w-xl text-muted-foreground">
-              Start anywhere. Everything is interconnected — recommendations link to comparisons,
-              comparisons to hidden charges, hidden charges to explanations.
+              Start anywhere. Explore a topic, compare factual details, and learn what the terms mean.
             </p>
           </div>
           <Button asChild variant="ghost" className="w-fit rounded-full">
@@ -361,8 +365,8 @@ function LandingPage() {
             {
               to: "/recommend",
               badge: "Questionnaire",
-              title: "Recommendation Engine",
-              body: "Answer 6 quick questions. Get zero-affiliate picks with reasons.",
+              title: "Explore financial options",
+              body: "Browse common financial products and learn their features and trade-offs.",
               icon: Sparkles,
             },
             {
@@ -376,7 +380,7 @@ function LandingPage() {
               to: "/compare",
               badge: "Side by side",
               title: "Compare",
-              body: "Pick any two products. See fees, scores and trade-offs.",
+              body: "Pick products to compare factual details, costs and trade-offs—without rankings.",
               icon: Scale,
             },
           ].map((c) => (

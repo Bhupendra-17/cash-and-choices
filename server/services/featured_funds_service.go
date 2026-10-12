@@ -191,7 +191,7 @@ func (s *FeaturedFundsService) ListFeaturedFunds(category string, limit int) ([]
 			       change_1m, change_6m, change_1y, change_3y, drawdown, is_featured, popularity_score, tags, updated_at
 			FROM featured_funds
 			WHERE ($1 = '' OR LOWER(category) LIKE '%' || LOWER($1) || '%')
-			ORDER BY is_featured DESC, popularity_score DESC, change_1y DESC
+			ORDER BY LOWER(scheme_name) ASC
 			LIMIT $2`
 		rows, err := s.db.Query(query, category, limit)
 		if err != nil {

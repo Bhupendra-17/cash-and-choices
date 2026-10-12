@@ -63,32 +63,27 @@ function FundsPage() {
   const debouncedQuery = useDebounce(query, 500);
   const [selectedCode, setSelectedCode] = useState<number | null>(null);
   const [selectedFund, setSelectedFund] = useState<MutualFund | null>(null);
-  const [selectedFeaturedId, setSelectedFeaturedId] = useState(MUTUAL_FUNDS[0].id);
   const [selectedCategory, setSelectedCategory] = useState<FundCategory | null>(null);
 
   const featuredFunds = useMemo(() => {
     return [...MUTUAL_FUNDS]
-      .sort((a, b) => fundScore(b) - fundScore(a))
+      .sort((a, b) => a.name.localeCompare(b.name))
       .slice(0, 3);
   }, []);
-  const selectedFeatured = MUTUAL_FUNDS.find((fund) => fund.id === selectedFeaturedId) ?? featuredFunds[0];
+  const [selectedFeaturedId, setSelectedFeaturedId] = useState(featuredFunds[0]?.id ?? "");
+  const selectedFeatured = featuredFunds.find((fund) => fund.id === selectedFeaturedId) ?? featuredFunds[0];
   const visibleFunds = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return MUTUAL_FUNDS.filter((fund) => {
       const matchesCategory = !selectedCategory || fund.category === selectedCategory;
       const matchesQuery = !normalizedQuery || `${fund.name} ${fund.amc} ${fundCategoryLabel(fund.category)}`.toLowerCase().includes(normalizedQuery);
       return matchesCategory && matchesQuery;
-    });
+    }).sort((a, b) => a.name.localeCompare(b.name));
   }, [query, selectedCategory]);
-  const popularCategories = useMemo(() => {
-    const categoryCounts = MUTUAL_FUNDS.reduce<Record<string, number>>((counts, fund) => {
-      counts[fund.category] = (counts[fund.category] || 0) + 1;
-      return counts;
-    }, {});
-    return [...FUND_CATEGORIES]
-      .sort((a, b) => (categoryCounts[b.id] || 0) - (categoryCounts[a.id] || 0))
-      .slice(0, 6);
-  }, []);
+  const categories = useMemo(
+    () => [...FUND_CATEGORIES].sort((a, b) => a.label.localeCompare(b.label)),
+    [],
+  );
 
   const { data: searchResults = [], isFetching } = useQuery({
     queryKey: ["fundsSearch", debouncedQuery],
@@ -111,9 +106,10 @@ function FundsPage() {
             <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
               <BarChart3 className="size-3.5" /> Mutual fund discovery
             </div>
-            <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Find funds that fit your plan.</h1>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Learn about mutual funds.</h1>
             <p className="mt-2 max-w-2xl text-muted-foreground">
-              Start with a shortlist built around consistency, cost and risk-adjusted performance. Then search live NAV data when you have a fund in mind.
+              Explore fund categories, learn how historical performance and costs are described,
+              and compare details for your own research.
             </p>
           </div>
           <div className="flex gap-2">
@@ -132,22 +128,28 @@ function FundsPage() {
           </div>
         </div>
 
+        <aside role="note" className="mt-6 rounded-xl border border-brand/25 bg-gradient-brand-soft p-4 text-sm">
+          <strong>For education only—not investment advice.</strong> Funds are listed for learning
+          and are not ranked, scored, endorsed, or selected for you. Historical performance does
+          not predict future results. Check current official scheme documents before making decisions.
+        </aside>
+
         <div className="mt-8 grid gap-4 lg:grid-cols-[1.45fr_0.85fr]">
           <AnimatedCard delay={0.1} className="rounded-2xl sm:rounded-3xl border border-border/70 bg-card p-4 sm:p-7 shadow-card min-w-0 overflow-hidden">
             <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
               <div>
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-deep">
-                  <ShieldCheck className="size-3.5" /> Editorial shortlist
+                  <ShieldCheck className="size-3.5" /> Illustrative examples
                 </div>
-                <h2 className="mt-1.5 text-lg sm:text-xl font-bold">Funds worth understanding first</h2>
-                <p className="mt-0.5 text-xs text-muted-foreground">A starting list, not a buy signal. We balance return, cost and volatility.</p>
+                <h2 className="mt-1.5 text-lg sm:text-xl font-bold">Examples from the fund list</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">Shown alphabetically as examples to explore—not recommendations.</p>
               </div>
               <Link to="/recommend" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-deep hover:underline shrink-0">
-                Use my profile <ArrowRight className="size-3.5" />
+                Learn about options <ArrowRight className="size-3.5" />
               </Link>
             </div>
             <div className="mt-4 sm:mt-6 grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-3">
-              {featuredFunds.map((fund, index) => (
+              {featuredFunds.map((fund) => (
                 <button
                   key={fund.id}
                   type="button"
@@ -161,11 +163,11 @@ function FundsPage() {
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">#{index + 1} shortlist</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{fundCategoryLabel(fund.category)}</span>
                     <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">{fund.returns.y3.toFixed(1)}% 3Y</span>
                   </div>
                   <h3 className="mt-2 line-clamp-2 text-xs sm:text-sm font-semibold">{fund.name}</h3>
-                  <p className="mt-1 text-[11px] sm:text-xs text-muted-foreground truncate">{fundCategoryLabel(fund.category)} · {fund.risk} risk</p>
+                  <p className="mt-1 text-[11px] sm:text-xs text-muted-foreground truncate">{fund.risk} risk indicator</p>
                   <div className="mt-3 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Cost</span>
                     <span className="font-semibold">{fund.expenseRatio.toFixed(2)}%</span>
@@ -179,28 +181,23 @@ function FundsPage() {
 
           <AnimatedCard delay={0.2} className="rounded-2xl sm:rounded-3xl border border-border/70 bg-surface p-4 sm:p-7 shadow-soft min-w-0 overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              <TrendingUp className="size-3.5 text-brand" /> Popular categories
+              <TrendingUp className="size-3.5 text-brand" /> Fund categories
             </div>
             <h2 className="mt-1.5 text-lg sm:text-xl font-bold">Choose by what you need.</h2>
             <div className="mt-4 space-y-2">
-              {popularCategories.map((category) => (
+              {categories.map((category) => (
                 <CategoryRow
                   key={category.id}
                   category={category}
                   selected={selectedCategory === category.id}
                   onSelect={() => {
                     setSelectedCategory(category.id);
-                    const categoryFund = MUTUAL_FUNDS.find((fund) => fund.category === category.id);
-                    if (categoryFund) {
-                      setSelectedFeaturedId(categoryFund.id);
-                      setSelectedFund(categoryFund);
-                    }
                   }}
                 />
               ))}
             </div>
             <p className="mt-4 text-[10px] sm:text-[11px] leading-relaxed text-muted-foreground">
-              Categories describe the kind of exposure a fund gives you. They are not risk ratings.
+              Categories are displayed alphabetically and describe the type of exposure, not a ranking or risk rating.
             </p>
           </AnimatedCard>
         </div>
@@ -332,10 +329,6 @@ function FundsPage() {
       </Sheet>
     </SiteLayout>
   );
-}
-
-function fundScore(fund: MutualFund) {
-  return fund.returns.y3 * 2 + fund.sharpe * 10 - fund.expenseRatio * 3 - fund.volatilityStdDev * 0.2;
 }
 
 function CategoryRow({
@@ -485,7 +478,7 @@ function CuratedFundDetailView({ fund }: { fund: MutualFund; onClose?: () => voi
         <MetricBox label="Minimum SIP" value={`₹${fund.minSip.toLocaleString("en-IN")}`} sub={fund.exitLoad} />
       </div>
       <div className="mt-6 rounded-3xl border border-border bg-muted/30 p-5">
-        <h3 className="font-semibold">Good fit when</h3>
+        <h3 className="font-semibold">Characteristics to understand</h3>
         <ul className="mt-3 space-y-2 text-sm text-muted-foreground">{fund.goodIf.map((item) => <li key={item}>• {item}</li>)}</ul>
         <h3 className="mt-5 font-semibold">Watch out when</h3>
         <ul className="mt-3 space-y-2 text-sm text-muted-foreground">{fund.avoidIf.map((item) => <li key={item}>• {item}</li>)}</ul>

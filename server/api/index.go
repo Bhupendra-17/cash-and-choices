@@ -41,7 +41,6 @@ func init() {
 	mux.HandleFunc("GET /api/funds/featured", apiHandler.GetFeaturedFunds)
 	mux.HandleFunc("POST /api/funds/interact", apiHandler.RecordFundInteraction)
 	mux.HandleFunc("POST /api/funds/explain", apiHandler.ExplainFund)
-	mux.HandleFunc("POST /api/recommend", apiHandler.ExplainRecommendations)
 	mux.HandleFunc("POST /api/calculators/tax", apiHandler.CalculateTax)
 
 	// Analytics & Event Tracking Routes
@@ -55,7 +54,6 @@ func init() {
 	mux.HandleFunc("POST /api/auth/request-otp", apiHandler.RequestOTP)
 	mux.HandleFunc("POST /api/auth/reset-password", apiHandler.ResetPassword)
 	mux.HandleFunc("GET /api/auth/me", apiHandler.GetMe)
-	mux.HandleFunc("POST /api/user/recommendations", apiHandler.SaveRecommendation)
 	mux.HandleFunc("POST /api/user/answers", apiHandler.UpdateSavedAnswers)
 
 	handler = corsMiddleware(cfg.AllowedOrigins, mux)

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, Copy, Scale } from "lucide-react";
+import { ArrowLeft, Check, Copy, Info, Scale } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { MUTUAL_FUNDS, fundCategoryLabel, type MutualFund } from "@/data/mutualFunds";
@@ -12,8 +12,12 @@ export const Route = createFileRoute("/funds/compare")({
   }),
   head: () => ({
     meta: [
-      { title: "Compare Mutual Funds | Cash&Choices" },
-      { name: "description", content: "Compare selected mutual funds across returns, risk, and costs." },
+      { title: "Compare Mutual Funds for Learning — Cash&Choices" },
+      {
+        name: "description",
+        content:
+          "Compare historical mutual fund data, risk metrics, and costs for educational purposes. No rankings or investment recommendations.",
+      },
     ],
   }),
   component: ComparePage,
@@ -22,8 +26,6 @@ export const Route = createFileRoute("/funds/compare")({
 type ComparisonMetric = {
   label: string;
   format: (fund: MutualFund) => string;
-  value: (fund: MutualFund) => number;
-  higherIsBetter?: boolean;
 };
 
 type PerformancePeriod = keyof MutualFund["returns"];
@@ -43,32 +45,32 @@ const METRIC_GROUPS: { label: string; metrics: ComparisonMetric[] }[] = [
   {
     label: "Returns",
     metrics: [
-      { label: "1 month", format: (fund) => `${fund.returns.m1.toFixed(1)}%`, value: (fund) => fund.returns.m1 },
-      { label: "3 months", format: (fund) => `${fund.returns.m3.toFixed(1)}%`, value: (fund) => fund.returns.m3 },
-      { label: "6 months", format: (fund) => `${fund.returns.m6.toFixed(1)}%`, value: (fund) => fund.returns.m6 },
-      { label: "1 year", format: (fund) => `${fund.returns.y1.toFixed(1)}%`, value: (fund) => fund.returns.y1 },
-      { label: "3 year CAGR", format: (fund) => `${fund.returns.y3.toFixed(1)}%`, value: (fund) => fund.returns.y3 },
-      { label: "5 year CAGR", format: (fund) => `${fund.returns.y5.toFixed(1)}%`, value: (fund) => fund.returns.y5 },
-      { label: "Since inception CAGR", format: (fund) => `${fund.cagrSinceInception.toFixed(1)}%`, value: (fund) => fund.cagrSinceInception },
+      { label: "1 month", format: (fund) => `${fund.returns.m1.toFixed(1)}%` },
+      { label: "3 months", format: (fund) => `${fund.returns.m3.toFixed(1)}%` },
+      { label: "6 months", format: (fund) => `${fund.returns.m6.toFixed(1)}%` },
+      { label: "1 year", format: (fund) => `${fund.returns.y1.toFixed(1)}%` },
+      { label: "3 year CAGR", format: (fund) => `${fund.returns.y3.toFixed(1)}%` },
+      { label: "5 year CAGR", format: (fund) => `${fund.returns.y5.toFixed(1)}%` },
+      { label: "Since inception CAGR", format: (fund) => `${fund.cagrSinceInception.toFixed(1)}%` },
     ],
   },
   {
     label: "Risk & efficiency",
     metrics: [
-      { label: "Risk level", format: (fund) => fund.risk, value: (fund) => ({ Low: 1, "Low-Moderate": 2, Moderate: 3, "Moderately High": 4, High: 5, "Very High": 6 })[fund.risk] },
-      { label: "Volatility", format: (fund) => `${fund.volatilityStdDev.toFixed(1)}%`, value: (fund) => fund.volatilityStdDev, higherIsBetter: false },
-      { label: "Sharpe ratio", format: (fund) => fund.sharpe.toFixed(2), value: (fund) => fund.sharpe },
-      { label: "Alpha", format: (fund) => fund.alpha.toFixed(2), value: (fund) => fund.alpha },
-      { label: "Benchmark", format: (fund) => fund.benchmark, value: () => 0 },
+      { label: "Risk level", format: (fund) => fund.risk },
+      { label: "Volatility", format: (fund) => `${fund.volatilityStdDev.toFixed(1)}%` },
+      { label: "Sharpe ratio", format: (fund) => fund.sharpe.toFixed(2) },
+      { label: "Alpha", format: (fund) => fund.alpha.toFixed(2) },
+      { label: "Benchmark", format: (fund) => fund.benchmark },
     ],
   },
   {
     label: "Costs & details",
     metrics: [
-      { label: "Expense ratio", format: (fund) => `${fund.expenseRatio.toFixed(2)}%`, value: (fund) => fund.expenseRatio, higherIsBetter: false },
-      { label: "Assets under management", format: (fund) => `₹${fund.aumCrore.toLocaleString("en-IN")} Cr`, value: (fund) => fund.aumCrore },
-      { label: "Minimum SIP", format: (fund) => `₹${fund.minSip.toLocaleString("en-IN")}`, value: (fund) => fund.minSip, higherIsBetter: false },
-      { label: "Exit load", format: (fund) => fund.exitLoad, value: () => 0 },
+      { label: "Expense ratio", format: (fund) => `${fund.expenseRatio.toFixed(2)}%` },
+      { label: "Assets under management", format: (fund) => `₹${fund.aumCrore.toLocaleString("en-IN")} Cr` },
+      { label: "Minimum SIP", format: (fund) => `₹${fund.minSip.toLocaleString("en-IN")}` },
+      { label: "Exit load", format: (fund) => fund.exitLoad },
     ],
   },
 ];
@@ -134,11 +136,21 @@ function ComparePage() {
           <div className="flex items-center gap-2 text-sm font-semibold text-brand">
             <Scale className="size-4" /> {funds.length} funds selected
           </div>
-          <h1 className="mt-2 text-3xl font-bold">Fund comparison</h1>
+          <h1 className="mt-2 text-3xl font-bold">Mutual fund comparison</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Returns, risk and costs for the funds you selected, shown side by side.
+            Historical data, risk measures, and costs for the funds you selected, shown side by side.
           </p>
         </header>
+
+        <aside role="note" className="mt-5 flex gap-3 rounded-xl border border-brand/25 bg-gradient-brand-soft p-4 text-sm">
+          <Info className="mt-0.5 size-5 shrink-0 text-brand-deep" />
+          <p>
+            <strong>Educational comparison only—not investment advice.</strong> Funds are shown in
+            your selected order; no fund is scored, ranked, or endorsed. Returns are historical,
+            may exclude costs or taxes, and do not predict future performance. Verify current
+            information in official scheme documents before making decisions.
+          </p>
+        </aside>
 
         <PerformanceComparisonChart
           funds={funds}
@@ -295,31 +307,18 @@ function ComparisonGroup({
           {group.label}
         </th>
       </tr>
-      {group.metrics.map((metric) => {
-        const values = funds.map((fund) => metric.value(fund));
-        const best = metric.higherIsBetter === undefined
-          ? undefined
-          : metric.higherIsBetter
-            ? Math.max(...values)
-            : Math.min(...values);
-
-        return (
+      {group.metrics.map((metric) => (
           <tr key={metric.label} className="border-t border-border/70 even:bg-muted/20">
             <th scope="row" className="sticky left-0 z-10 border-r border-border bg-card px-4 py-3 text-xs font-medium text-muted-foreground sm:text-sm">
               {metric.label}
             </th>
-            {funds.map((fund) => {
-              const isBest = best !== undefined && metric.value(fund) === best;
-              return (
-                <td key={fund.id} className={cn("px-4 py-3 text-sm", isBest && "font-bold text-emerald-700 dark:text-emerald-400")}>
+            {funds.map((fund) => (
+                <td key={fund.id} className="px-4 py-3 text-sm">
                   {metric.format(fund)}
-                  {isBest && <span className="ml-2 text-[10px] font-semibold uppercase">Best</span>}
                 </td>
-              );
-            })}
+            ))}
           </tr>
-        );
-      })}
+      ))}
     </>
   );
 }

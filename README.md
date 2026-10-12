@@ -19,7 +19,7 @@ cash-choices/
     ├── config/                  # Configuration & Environment loading
     ├── models/                  # Struct definitions
     ├── services/                # Business logic (MF API, AI Gateway, Tax Calculations)
-    └── handlers/                # HTTP API handlers (/api/funds/*, /api/recommend, /api/calculators/*)
+    └── handlers/                # HTTP API handlers (/api/funds/*, /api/calculators/*)
 ```
 
 ---
@@ -57,5 +57,8 @@ The frontend client will start on `http://localhost:3000` (or `http://localhost:
 - `GET /api/funds/search?q={query}`: Search Indian mutual funds via `mfapi.in` integration.
 - `GET /api/funds/detail?code={schemeCode}`: Get scheme NAV history, 1M/6M/1Y/3Y returns, 52-week High/Low, and drawdown.
 - `POST /api/funds/explain`: AI breakdown of fund performance.
-- `POST /api/recommend`: AI recommendation engine.
 - `POST /api/calculators/tax`: Investment withdrawal tax calculation engine.
+
+Cash&Choices is a financial literacy platform. Product examples and comparisons are provided
+for general educational purposes only; the app does not score, rank, endorse, or recommend
+financial products, and does not provide personalized investment advice.

@@ -54,7 +54,7 @@ export function Header() {
             </Button>
           )}
           <Button asChild className="rounded-full bg-gradient-brand text-white hover:opacity-95 shadow-glow">
-            <Link to="/recommend">Start my path</Link>
+            <Link to="/recommend">Explore options</Link>
           </Button>
         </div>
         <div className="flex items-center gap-2 md:hidden">
@@ -106,7 +106,7 @@ export function Header() {
             )}
             <Button asChild className="mt-2 w-full rounded-full bg-gradient-brand text-white">
               <Link to="/recommend" onClick={() => setOpen(false)}>
-                Start my path
+                Explore options
               </Link>
             </Button>
           </div>

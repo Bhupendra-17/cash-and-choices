@@ -28,9 +28,9 @@ const promises = [
   { title: "No bank connections", body: "We do not integrate with account aggregators, banks, brokers or UPI." },
   { title: "No financial tracking", body: "We don't ingest statements, holdings, portfolios or transactions." },
   { title: "No selling user data", body: "We will never sell, rent or share user data with third-parties." },
-  { title: "Questionnaire-based", body: "Recommendations are driven by your explicit answers, not surveillance." },
+  { title: "Educational, not personalized", body: "We do not use a questionnaire to select or rank financial products for you." },
   { title: "Local-first storage", body: "Saved calculations and comparisons live in your browser by default." },
-  { title: "Zero affiliate bias", body: "We take no referral commissions. Rankings are ours, not the highest bidder's." },
+  { title: "No product rankings", body: "We do not score, rank, or endorse financial products." },
 ];
 
 function PrivacyPage() {
@@ -43,8 +43,8 @@ function PrivacyPage() {
           </div>
           <h1 className="mt-4 text-4xl font-bold sm:text-5xl">Privacy is our biggest feature.</h1>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Cash&amp;Choices is not another finance tracker. We help you decide — without asking for
-            your financial secrets.
+            Cash&amp;Choices is a financial literacy platform. Learn about financial concepts and
+            compare general product information without sharing your financial secrets.
           </p>
         </div>
 
@@ -73,10 +73,10 @@ function PrivacyPage() {
             <h2 className="text-lg font-semibold text-brand-deep">What we do instead</h2>
             <ul className="mt-4 space-y-2 text-sm">
               {[
-                "Short, skippable questionnaires",
-                "Plain-English recommendations",
-                "Honest fee & charge breakdowns",
-                "Side-by-side product comparisons",
+                "Plain-English financial education",
+                "Common costs and trade-offs explained",
+                "Side-by-side factual comparisons",
+                "No personalized picks, scores, or rankings",
                 "Local-first calculators",
                 "Zero affiliate commissions",
               ].map((i) => (
@@ -113,7 +113,7 @@ function PrivacyPage() {
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Button asChild className="rounded-full bg-white text-brand-deep hover:bg-white/95">
-              <Link to="/recommend">Get recommendations</Link>
+              <Link to="/recommend">Explore financial options</Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full border-white/40 bg-transparent text-white hover:bg-white/10">
               <Link to="/charges">Explore hidden charges</Link>

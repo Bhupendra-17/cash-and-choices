@@ -309,7 +309,7 @@ function FundDetailPage() {
             <AnimatedCard delay={0.4} className="mt-6 rounded-3xl border border-brand/30 bg-gradient-to-r from-brand/5 to-emerald-500/5 p-6 shadow-soft">
               <h2 className="font-semibold">Want to compare this fund?</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Stack it against other funds side-by-side and see how it ranks on cost, risk, and returns.
+                Compare historical data, costs, and risk measures side by side for learning—without rankings or recommendations.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button

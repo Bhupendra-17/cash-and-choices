@@ -12,7 +12,7 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign In / Sign Up — Cash&Choices" },
-      { name: "description", content: "Access your saved financial recommendations and profile." },
+      { name: "description", content: "Access your Cash&Choices account and financial learning tools." },
     ],
   }),
   component: AuthPage,
