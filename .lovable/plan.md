@@ -1,35 +1,62 @@
-# Mutual Funds & Investment Intelligence Module
+# Cash&Choices Product Direction
 
-This is a large, multi-page build. I'll ship it in phases so you can review each one before I move on. Everything stays privacy-first: no PAN, no bank login, no personal financial data — only anonymous questionnaire inputs stored in-browser.
+Cash&Choices is a financial-literacy platform for learning about money terms,
+financial products, costs, risks, and trade-offs. The product supports
+independent understanding; it must not operate as a personalized financial
+product recommender.
 
-## Phase 1 — Data foundation & fund listings
-- Expand `src/data/` with a rich mutual-fund dataset (30–40 funds) covering all requested categories (Index, Large/Mid/Small/Flexi/Multi Cap, ELSS, Hybrid, Debt, International, Sectoral, Thematic, Liquid, Arbitrage) with every field you listed (NAV, returns, CAGR, risk, expense ratio, AUM, manager, exit load, min SIP/lump sum, benchmark, allocation, top holdings, tracking error, Sharpe/alpha/beta/std-dev).
-- Rebuild `/funds` route: filter chips by category, sort dropdown (all 10 sort modes), searchable list, and per-fund detail drawer.
-- Each fund detail includes a "Know Before You Invest" block.
+## Non-negotiable product constraints
 
-## Phase 2 — Smart Fund Comparison
-- New `/funds/compare` route allowing category-vs-category and fund-vs-fund comparison (up to 3).
-- Comparison table across every parameter you listed. Each row auto-highlights the better value and shows a one-line explanation ("Lower expense ratio → keeps more of your returns").
+- No personalized product picks, product-fit scores, financial-health scores,
+  product rankings, or winner badges.
+- Comparisons present factual attributes side by side and explain trade-offs
+  without choosing for the user.
+- Educational-purpose and non-advice notices must be visible around product
+  examples, comparisons, calculators, and AI-generated content.
+- Historical performance must not be presented as predictive of future results.
+- AI-generated content must be grounded in administrator-provided sources and
+  reviewed by a person before publication.
+- Do not claim legal or SEBI compliance based only on interface copy or
+  disclaimers; obtain qualified regulatory and legal review.
 
-## Phase 3 — Hidden Charges Explorer
-- New `/charges` route (extend existing charges page).
-- Card grid for every charge type with the five explainer fields (What / Why / When / How much / Can it be avoided?).
-- Per-fund "Total Cost of Ownership" widget on fund detail pages.
+## Current experience
 
-## Phase 4 — Investment Calculator Hub
-- New `/calculators` index + one route per calculator (SIP, Lump Sum, FD, RD, Tax-Saver FD, IPO, Bonds, Gold, PPF, NPS, EPF, SSY, NSC).
-- Shared calculator engine returns invested amount, returns, total value, interest, taxable gains, estimated tax, net withdrawal, inflation-adjusted value, effective annual return.
-- Interactive charts using Recharts (already in the stack).
+- Homepage positions the service as a financial-literacy platform.
+- Product exploration uses educational examples rather than personalized
+  recommendations.
+- Product comparison focuses on factual attributes, concepts, costs, and
+  trade-offs instead of scores or rankings.
+- Account sign-up offers an explicit newsletter preference, and users can
+  manage their preference from their account.
+- The protected newsletter admin route supports one preview per UTC week,
+  admin editing, and review confirmation. Email delivery, live news fetching,
+  and automatic scheduling are not enabled.
 
-## Phase 5 — Personalized Suggestions (AI-assisted)
-- Extend existing `/recommend` questionnaire with the investment-specific questions (income range, budget, goal, horizon, risk, emergency fund, liquidity, experience).
-- Rules engine shortlists funds; Lovable AI generates the "why it fits / risks / confidence score" explanation (reusing `explainRecommendations`).
+## Ongoing development priorities
 
-## Phase 6 — Withdrawal & Tax Calculator
-- New `/tax-calculator` route.
-- Inputs: investment type, date, amount, current value, withdrawal amount.
-- Output: original vs gains breakdown, LTCG/STCG classification, tax rule citation, exit load, net receivable — with plain-language explanations for every line.
+### Learning content and product explanations
 
-## Phase 7 — Transparency & UX polish
-- Reusable `KnowBeforeYouInvest`, `MetricWithTooltip`, `CostBreakdownCard`, `ScenarioSimulator` components used across all investment pages.
-- Site nav updated so all new sections are reachable; new pages get proper `head()` metadata for SEO.
+- Explain product terminology in plain language and distinguish general
+  educational information from product-specific terms.
+- Display data provenance and the date of information where available.
+- Encourage users to confirm fees, eligibility, risks, and tax details in
+  current official product documents.
+
+### Neutral comparisons and calculators
+
+- Show comparable factual fields without assessing which option suits a user.
+- Explain why a metric matters without declaring the higher or lower value
+  universally preferable.
+- For calculators, disclose assumptions and label results as estimates; actual
+  outcomes and applicable tax rules may vary.
+
+### Newsletter review workflow
+
+- Keep the weekly newsletter preview restricted to server-allowlisted admin
+  accounts.
+- Include an India-market overview based on sources supplied by the admin, one
+  short financial-literacy lesson, and a fixed educational-purpose footer.
+- Require human verification before an edition is marked reviewed.
+- Before any sending or scheduling is introduced, define consent and unsubscribe
+  flows, retention and privacy requirements, operational controls, and legal
+  review.

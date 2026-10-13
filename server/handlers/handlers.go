@@ -6,19 +6,23 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"cash-choices-server/models"
 	"cash-choices-server/services"
 )
 
 type APIHandler struct {
-	mfService        *services.MFService
-	aiService        *services.AIService
-	calcService      *services.CalculatorService
-	authService      *services.AuthService
-	analyticsService *services.AnalyticsService
-	featuredService  *services.FeaturedFundsService
+	mfService         *services.MFService
+	aiService         *services.AIService
+	calcService       *services.CalculatorService
+	authService       *services.AuthService
+	analyticsService  *services.AnalyticsService
+	featuredService   *services.FeaturedFundsService
+	newsletterService *services.NewsletterService
 }
+
+const newsletterFooter = "Cash&Choices is a financial literacy platform. This email is for general educational purposes only. It is not investment advice, a personalized recommendation, or a solicitation to buy or sell securities. Consider a SEBI-registered investment adviser for advice tailored to your circumstances."
 
 func NewAPIHandler(
 	mf *services.MFService,
@@ -27,6 +31,7 @@ func NewAPIHandler(
 	auth *services.AuthService,
 	analytics *services.AnalyticsService,
 	featured *services.FeaturedFundsService,
+	newsletter *services.NewsletterService,
 ) *APIHandler {
 	return &APIHandler{
 		mfService:        mf,
@@ -35,6 +40,7 @@ func NewAPIHandler(
 		authService:      auth,
 		analyticsService: analytics,
 		featuredService:  featured,
+		newsletterService: newsletter,
 	}
 }
 
@@ -211,6 +217,10 @@ func (h *APIHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if err := h.newsletterService.SubscribeOnSignup(resp.User.Email, req.NewsletterOptIn); err != nil {
+		respondError(w, http.StatusServiceUnavailable, "account created, but newsletter preferences could not be saved; please sign in and try again")
+		return
+	}
 
 	respondJSON(w, http.StatusOK, resp)
 }
@@ -228,6 +238,10 @@ func (h *APIHandler) Login(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
+	if err := h.newsletterService.EnsureSubscribed(resp.User.Email); err != nil {
+		respondError(w, http.StatusServiceUnavailable, "signed in, but newsletter preferences could not be loaded; please try again")
+		return
+	}
 
 	respondJSON(w, http.StatusOK, resp)
 }
@@ -242,8 +256,226 @@ func (h *APIHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if err := h.newsletterService.SetIfMissing(resp.User.Email, req.NewsletterOptIn, "google-account"); err != nil {
+		respondError(w, http.StatusServiceUnavailable, "signed in, but newsletter preferences could not be loaded; please try again")
+		return
+	}
 
 	respondJSON(w, http.StatusOK, resp)
+}
+
+func (h *APIHandler) NewsletterSubscription(w http.ResponseWriter, r *http.Request) {
+	user, err := h.authService.GetUserByToken(r.Header.Get("Authorization"))
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	if r.Method == http.MethodGet {
+		subscription, err := h.newsletterService.GetSubscription(user.Email)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, subscription)
+		return
+	}
+
+	var req struct {
+		Subscribed bool `json:"subscribed"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+	subscription, err := h.newsletterService.SetSubscription(user.Email, req.Subscribed)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, subscription)
+}
+
+func (h *APIHandler) NewsletterAdminCurrent(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.requireNewsletterAdmin(w, r); !ok {
+		return
+	}
+	edition, err := h.newsletterService.CurrentEdition(time.Now())
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	subscribers, err := h.newsletterService.SubscriberCount()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"edition": edition, "subscriberCount": subscribers})
+}
+
+func (h *APIHandler) NewsletterAdminCreateDraft(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.requireNewsletterAdmin(w, r); !ok {
+		return
+	}
+
+	var req struct {
+		MarketSources string `json:"marketSources"`
+		LessonTopic   string `json:"lessonTopic"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+	req.MarketSources = strings.TrimSpace(req.MarketSources)
+	req.LessonTopic = strings.TrimSpace(req.LessonTopic)
+	if len(req.MarketSources) < 20 || len(req.MarketSources) > 8000 {
+		respondError(w, http.StatusBadRequest, "provide 20 to 8000 characters of current market news notes and source links")
+		return
+	}
+	if len(req.LessonTopic) < 3 || len(req.LessonTopic) > 180 {
+		respondError(w, http.StatusBadRequest, "lesson topic must be between 3 and 180 characters")
+		return
+	}
+	if edition, err := h.newsletterService.CurrentEdition(time.Now()); err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	} else if edition != nil {
+		respondError(w, http.StatusConflict, "a newsletter edition already exists for this week")
+		return
+	}
+
+	messages := []services.ChatMessage{
+		{
+			Role: "system",
+			Content: `You are an Indian financial-literacy newsletter editor. Write a concise weekly educational email in plain language.
+Use only the market facts and source notes provided. Do not invent events, numbers, dates, sources, or claims. If the notes do not support a useful trend summary, explicitly say the supplied sources need more detail.
+The lesson explains general concepts, not what the reader should buy, sell, hold, or choose. Never personalize, rank, endorse products, predict returns, or give investment/tax/legal advice. Avoid urgency and hype.
+Return only JSON with string fields: subject (<=90 characters), preheader (<=130), marketSummary (<=500), lessonTitle (<=100), lessonBody (<=700).`,
+		},
+		{
+			Role: "user",
+			Content: fmt.Sprintf("Verified India market news notes and source URLs:\n%s\n\nEducational lesson topic for this edition:\n%s", req.MarketSources, req.LessonTopic),
+		},
+	}
+	response, err := h.aiService.CallAI(messages, 0.3, true)
+	if err != nil {
+		respondError(w, http.StatusBadGateway, "AI newsletter draft generation failed; check the AI service configuration and try again")
+		return
+	}
+	var content services.NewsletterContent
+	if err := json.Unmarshal([]byte(response), &content); err != nil {
+		respondError(w, http.StatusBadGateway, "AI returned an invalid newsletter draft; try again")
+		return
+	}
+	content.MarketSources = req.MarketSources
+	content.Footer = newsletterFooter
+	if err := validateNewsletterContent(content); err != nil {
+		respondError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+
+	edition, err := h.newsletterService.CreateEdition(time.Now(), content)
+	if err == services.ErrNewsletterEditionExists {
+		respondError(w, http.StatusConflict, err.Error())
+		return
+	}
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusCreated, edition)
+}
+
+func (h *APIHandler) NewsletterAdminValidate(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.requireNewsletterAdmin(w, r); !ok {
+		return
+	}
+
+	var req struct {
+		ID              string `json:"id"`
+		ReviewConfirmed bool   `json:"reviewConfirmed"`
+		services.NewsletterContent
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+	if strings.TrimSpace(req.ID) == "" {
+		respondError(w, http.StatusBadRequest, "newsletter edition id is required")
+		return
+	}
+	if !req.ReviewConfirmed {
+		respondError(w, http.StatusBadRequest, "confirm that the market summary and learning text were reviewed before validation")
+		return
+	}
+	req.NewsletterContent.Subject = strings.TrimSpace(req.NewsletterContent.Subject)
+	req.NewsletterContent.Preheader = strings.TrimSpace(req.NewsletterContent.Preheader)
+	req.NewsletterContent.MarketSummary = strings.TrimSpace(req.NewsletterContent.MarketSummary)
+	req.NewsletterContent.LessonTitle = strings.TrimSpace(req.NewsletterContent.LessonTitle)
+	req.NewsletterContent.LessonBody = strings.TrimSpace(req.NewsletterContent.LessonBody)
+	req.NewsletterContent.MarketSources = strings.TrimSpace(req.NewsletterContent.MarketSources)
+	req.NewsletterContent.Footer = strings.TrimSpace(req.NewsletterContent.Footer)
+	if err := validateNewsletterContent(req.NewsletterContent); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	edition, err := h.newsletterService.ValidateEdition(time.Now(), req.ID, req.NewsletterContent)
+	if err == services.ErrNewsletterEditionNotFound {
+		respondError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, edition)
+}
+
+func (h *APIHandler) requireNewsletterAdmin(w http.ResponseWriter, r *http.Request) (*models.UserProfile, bool) {
+	authHeader := r.Header.Get("Authorization")
+	token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+	if strings.HasPrefix(token, "token_g_") {
+		respondError(w, http.StatusForbidden, "newsletter admin actions require email and password sign-in")
+		return nil, false
+	}
+	user, err := h.authService.GetUserByToken(authHeader)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, err.Error())
+		return nil, false
+	}
+	if !h.newsletterService.IsAdmin(user.Email) {
+		respondError(w, http.StatusForbidden, "newsletter admin access is not enabled for this account")
+		return nil, false
+	}
+	return user, true
+}
+
+func validateNewsletterContent(content services.NewsletterContent) error {
+	if len(content.Subject) == 0 || len(content.Subject) > 90 {
+		return fmt.Errorf("subject must be between 1 and 90 characters")
+	}
+	if len(content.Preheader) == 0 || len(content.Preheader) > 130 {
+		return fmt.Errorf("preheader must be between 1 and 130 characters")
+	}
+	if len(content.MarketSummary) == 0 || len(content.MarketSummary) > 500 {
+		return fmt.Errorf("market summary must be between 1 and 500 characters")
+	}
+	if len(content.LessonTitle) == 0 || len(content.LessonTitle) > 100 {
+		return fmt.Errorf("lesson title must be between 1 and 100 characters")
+	}
+	if len(content.LessonBody) == 0 || len(content.LessonBody) > 700 {
+		return fmt.Errorf("lesson body must be between 1 and 700 characters")
+	}
+	if len(content.MarketSources) < 20 || len(content.MarketSources) > 8000 {
+		return fmt.Errorf("market sources must be between 20 and 8000 characters")
+	}
+	if len(content.Footer) == 0 || len(content.Footer) > 600 {
+		return fmt.Errorf("footer must be between 1 and 600 characters")
+	}
+	if content.Footer != newsletterFooter {
+		return fmt.Errorf("the educational-purpose footer disclaimer cannot be changed")
+	}
+	return nil
 }
 
 // POST /api/auth/request-otp

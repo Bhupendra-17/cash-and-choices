@@ -1,45 +1,44 @@
-# Cash&Choices — Smarter Financial Decisions (Client & Server Monorepo)
+# Cash&Choices — Financial Literacy Platform
 
-This project consists of a modern, lightweight frontend (`client/`) powered by React, TanStack Start & Tailwind CSS, and a high-performance REST API backend (`server/`) written in **Go (Golang)**.
+Cash&Choices helps people learn financial concepts, explore financial products,
+understand costs and trade-offs, and compare factual information. It is an
+educational platform—not a product recommender, adviser, broker, or ranking
+service.
 
----
+## Product principles
 
-## Directory Structure
+- Product examples and comparisons are for general educational purposes only.
+- The app does not score, rank, endorse, or recommend financial products or
+  provide personalized investment advice.
+- Comparisons explain features, risks, fees, liquidity, tax considerations, and
+  other trade-offs without declaring a winner.
+- Financial decisions should be made independently, based on current official
+  product documents and, where appropriate, advice from a qualified
+  professional.
+- The product's educational positioning does not by itself establish compliance
+  with SEBI rules or other applicable laws. Obtain qualified regulatory and
+  legal review before launch.
 
-```
+## Repository structure
+
+```text
 cash-choices/
-├── client/                      # Frontend Application (React, TanStack Start, Tailwind)
-│   ├── src/                     # UI Components, Routes, Data & Hooks
-│   ├── public/                  # Static Assets
-│   ├── package.json             # Frontend Dependencies
-│   └── vite.config.ts           # Vite Config (with /api proxy to localhost:8080)
-└── server/                      # Backend Application (Go / Golang)
-    ├── go.mod                   # Go module definition
-    ├── main.go                  # Entry point & HTTP server router
-    ├── config/                  # Configuration & Environment loading
-    ├── models/                  # Struct definitions
-    ├── services/                # Business logic (MF API, AI Gateway, Tax Calculations)
-    └── handlers/                # HTTP API handlers (/api/funds/*, /api/calculators/*)
+├── client/   # React, TanStack Start, Tailwind CSS frontend
+└── server/   # Go REST API, services, models, and database integration
 ```
 
----
+## Local development
 
-## Getting Started
+Requirements: Go 1.22+ and Node.js with npm.
 
-### 1. Run the Go Backend Server
-
-Requirements: [Go 1.22+](https://go.dev/dl/)
+Run the backend:
 
 ```sh
 cd server
-go run main.go
+go run .
 ```
 
-The Go server will start on `http://localhost:8080`.
-
-### 2. Run the Frontend Client
-
-Requirements: Node.js 18+ and npm
+Run the frontend in a second terminal:
 
 ```sh
 cd client
@@ -47,18 +46,67 @@ npm install
 npm run dev
 ```
 
-The frontend client will start on `http://localhost:3000` (or `http://localhost:8081`), with all `/api/*` requests automatically proxied to the Go backend.
+Vite proxies `/api/*` requests to the Go backend during local development. Use
+the port printed by the Vite dev server.
 
----
+Useful client commands:
 
-## API Endpoints (Go Backend)
+```sh
+npm run lint
+npm run build
+```
 
-- `GET /api/health`: Health status check.
-- `GET /api/funds/search?q={query}`: Search Indian mutual funds via `mfapi.in` integration.
-- `GET /api/funds/detail?code={schemeCode}`: Get scheme NAV history, 1M/6M/1Y/3Y returns, 52-week High/Low, and drawdown.
-- `POST /api/funds/explain`: AI breakdown of fund performance.
-- `POST /api/calculators/tax`: Investment withdrawal tax calculation engine.
+Run backend tests from `server/`:
 
-Cash&Choices is a financial literacy platform. Product examples and comparisons are provided
-for general educational purposes only; the app does not score, rank, endorse, or recommend
-financial products, and does not provide personalized investment advice.
+```sh
+go test ./...
+```
+
+## API overview
+
+- `GET /api/health`: backend health check.
+- `GET /api/funds/search?q={query}`: search mutual-fund schemes.
+- `GET /api/funds/detail?code={schemeCode}`: retrieve scheme details and
+  available NAV history.
+- `POST /api/funds/explain`: request an AI-generated educational explanation.
+- `POST /api/calculators/tax`: calculate an estimated investment-withdrawal tax
+  result.
+- `GET /api/newsletter/subscription`: retrieve the signed-in user's newsletter
+  preference.
+- `PUT /api/newsletter/subscription`: update the signed-in user's subscription
+  preference.
+- `GET /api/newsletter/admin/current`: retrieve this week's admin-only draft and
+  subscriber count.
+- `POST /api/newsletter/admin/draft`: create this week's AI-assisted preview
+  from admin-provided market notes, source URLs, and a learning topic.
+- `POST /api/newsletter/admin/validate`: save the reviewed edition. This does
+  not send email.
+
+## Weekly financial-literacy newsletter (preview mode)
+
+The newsletter is currently a manual preview and review workflow. It is not an
+automated mailing list campaign.
+
+- Configure `NEWSLETTER_ADMIN_EMAILS` on the server as a comma-separated
+  allowlist of admin account email addresses. Admin newsletter actions require
+  a signed-in email/password session.
+- Users can choose whether to subscribe during email/password sign-up and can
+  change their preference from their account page. Signing in subscribes an
+  account only when no preference exists; a previously saved unsubscribe is
+  retained.
+- An allowlisted admin enters India-market news notes and source URLs and
+  chooses a learning topic. AI creates an editable draft using only the
+  supplied material. The admin must verify the facts and wording before
+  marking it reviewed.
+- Newsletter sections include an Indian-market summary, a short financial
+  lesson, and a fixed educational-purpose footer.
+- Only one edition can be created per UTC week. The admin page can preview and
+  validate one edition; it does not send email, fetch live news, or schedule
+  future editions.
+- Set `OPENAI_API_KEY` on the server for AI draft generation.
+- Persistent newsletter subscription and edition data require `DATABASE_URL`.
+  Without it, the server's in-memory mode does not preserve newsletter data
+  across restarts.
+
+Before enabling email delivery, add a mailing provider, reliable scheduling,
+unsubscribe handling in delivered messages, and regulatory/legal review.

@@ -11,6 +11,7 @@ is `src/routes/__root.tsx`.
 | --- | --- |
 | `index.tsx` | `/` |
 | `about.tsx` | `/about` |
+| `admin.newsletter.tsx` | `/admin/newsletter` |
 | `users/index.tsx` | `/users` |
 | `users/$id.tsx` | `/users/:id` (dynamic — bare `$`, no curly braces) |
 | `posts/{-$category}.tsx` | `/posts/:category?` (optional segment) |

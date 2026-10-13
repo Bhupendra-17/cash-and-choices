@@ -33,6 +33,7 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newsletterOptIn, setNewsletterOptIn] = useState(true);
 
   // OTP flow state
   const [otpStep, setOtpStep] = useState<"request" | "verify">("request");
@@ -100,7 +101,9 @@ function AuthPage() {
             credential: idToken || accessToken || "",
             email,
             name,
+            newsletterOptIn: sessionStorage.getItem("cash_choices_newsletter_opt_in") !== "false",
           });
+          sessionStorage.removeItem("cash_choices_newsletter_opt_in");
 
           // Clean URL parameters from browser address bar
           window.history.replaceState(null, "", window.location.pathname);
@@ -156,7 +159,7 @@ function AuthPage() {
     setError(null);
     setLoading(true);
     try {
-      await signup(name, email, password);
+      await signup(name, email, password, newsletterOptIn);
       navigate({ to: "/profile" });
     } catch (err: any) {
       setError(err.message || "Signup failed");
@@ -175,6 +178,7 @@ function AuthPage() {
     }
 
     setError(null);
+    sessionStorage.setItem("cash_choices_newsletter_opt_in", String(newsletterOptIn));
     const redirectUri = window.location.origin + "/auth";
     const nonce = Math.random().toString(36).substring(2);
     const authUrl =
@@ -236,7 +240,7 @@ function AuthPage() {
           </div>
           <h1 className="mt-3 text-3xl font-bold tracking-tight">Account Access</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in or create an account to save your decision questionnaire results.
+            Sign in or create an account to access financial learning tools.
           </p>
         </div>
 
@@ -311,6 +315,11 @@ function AuthPage() {
                 </svg>
                 Continue with Google
               </Button>
+              <p className="mt-2 text-center text-xs leading-relaxed text-muted-foreground">
+                {mode === "login"
+                  ? "Signing in adds you to the weekly financial-literacy email if you are not already subscribed. You can unsubscribe from your account."
+                  : "New accounts can choose whether to subscribe to the weekly financial-literacy email below."}
+              </p>
 
               <div className="relative my-6 text-center text-xs uppercase tracking-wider text-muted-foreground">
                 <span className="relative z-10 bg-card px-3">or continue with email</span>
@@ -443,6 +452,19 @@ function AuthPage() {
                   />
                 </div>
               </div>
+
+              <label className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={newsletterOptIn}
+                  onChange={(event) => setNewsletterOptIn(event.target.checked)}
+                  className="mt-0.5 accent-brand"
+                />
+                <span>
+                  Subscribe me to the weekly financial-literacy email. It is educational, not
+                  investment advice; I can unsubscribe from my account.
+                </span>
+              </label>
 
               <Button
                 type="submit"

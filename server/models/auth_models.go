@@ -3,9 +3,10 @@ package models
 import "time"
 
 type SignUpRequest struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Name             string `json:"name"`
+	Email            string `json:"email"`
+	Password         string `json:"password"`
+	NewsletterOptIn  bool   `json:"newsletterOptIn"`
 }
 
 type LoginRequest struct {
@@ -17,6 +18,7 @@ type GoogleAuthRequest struct {
 	Credential string `json:"credential"` // Google ID token or token payload
 	Email      string `json:"email"`
 	Name       string `json:"name"`
+	NewsletterOptIn bool `json:"newsletterOptIn"`
 }
 
 type OTPRequest struct {

@@ -64,8 +64,9 @@ func main() {
 	authService := services.NewAuthService(database, emailService)
 	analyticsService := services.NewAnalyticsService(database)
 	featuredService := services.NewFeaturedFundsService(database, mfService)
+	newsletterService := services.NewNewsletterService(database, cfg.NewsletterAdminEmails)
 
-	apiHandler := handlers.NewAPIHandler(mfService, aiService, calcService, authService, analyticsService, featuredService)
+	apiHandler := handlers.NewAPIHandler(mfService, aiService, calcService, authService, analyticsService, featuredService, newsletterService)
 
 	mux := http.NewServeMux()
 
@@ -90,6 +91,11 @@ func main() {
 	mux.HandleFunc("POST /api/auth/reset-password", apiHandler.ResetPassword)
 	mux.HandleFunc("GET /api/auth/me", apiHandler.GetMe)
 	mux.HandleFunc("POST /api/user/answers", apiHandler.UpdateSavedAnswers)
+	mux.HandleFunc("GET /api/newsletter/subscription", apiHandler.NewsletterSubscription)
+	mux.HandleFunc("PUT /api/newsletter/subscription", apiHandler.NewsletterSubscription)
+	mux.HandleFunc("GET /api/newsletter/admin/current", apiHandler.NewsletterAdminCurrent)
+	mux.HandleFunc("POST /api/newsletter/admin/draft", apiHandler.NewsletterAdminCreateDraft)
+	mux.HandleFunc("POST /api/newsletter/admin/validate", apiHandler.NewsletterAdminValidate)
 
 	handler := corsMiddleware(cfg.AllowedOrigins, mux)
 

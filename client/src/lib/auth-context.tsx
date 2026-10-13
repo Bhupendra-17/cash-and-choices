@@ -2,38 +2,12 @@ import React, { createContext, useContext, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./api";
 
-export type QuestionAnswer = {
-  questionId: string;
-  questionText: string;
-  answerValue: string;
-  answerLabel: string;
-};
-
-export type PickItem = {
-  productId: string;
-  fit: number;
-  why: string;
-  watchOut: string;
-};
-
-export type SavedRecommendation = {
-  id: string;
-  date: string;
-  headline: string;
-  summary: string;
-  answers: QuestionAnswer[];
-  picks: PickItem[];
-  nextSteps: string[];
-};
-
 export type UserProfile = {
   id: string;
   name: string;
   email: string;
   provider: "email" | "google" | string;
   createdAt: string;
-  savedAnswers?: QuestionAnswer[];
-  savedRecommendations: SavedRecommendation[];
 };
 
 type AuthContextType = {
@@ -41,18 +15,10 @@ type AuthContextType = {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
-  googleLogin: (options?: { credential?: string; email?: string; name?: string }) => Promise<void>;
+  signup: (name: string, email: string, password: string, newsletterOptIn?: boolean) => Promise<void>;
+  googleLogin: (options?: { credential?: string; email?: string; name?: string; newsletterOptIn?: boolean }) => Promise<void>;
   requestOTP: (email: string) => Promise<{ message: string; otp?: string }>;
   resetPassword: (email: string, otp: string, newPassword: string) => Promise<void>;
-  saveRecommendation: (payload: {
-    headline: string;
-    summary: string;
-    answers: QuestionAnswer[];
-    picks: PickItem[];
-    nextSteps: string[];
-  }) => Promise<SavedRecommendation>;
-  updateSavedAnswers: (answers: QuestionAnswer[]) => Promise<void>;
   logout: () => void;
 };
 
@@ -114,11 +80,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Signup Mutation
   const signupMutation = useMutation({
-    mutationFn: async ({ name, email, password }: { name: string; email: string; password: string }) => {
+    mutationFn: async ({ name, email, password, newsletterOptIn }: { name: string; email: string; password: string; newsletterOptIn: boolean }) => {
       const res = await apiFetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, newsletterOptIn }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Sign up failed");
@@ -131,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Google Login Mutation
   const googleLoginMutation = useMutation({
-    mutationFn: async (options?: { credential?: string; email?: string; name?: string }) => {
+    mutationFn: async (options?: { credential?: string; email?: string; name?: string; newsletterOptIn?: boolean }) => {
       const res = await apiFetch("/api/auth/google", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -139,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           credential: options?.credential || "",
           email: options?.email || "",
           name: options?.name || "",
+          newsletterOptIn: options?.newsletterOptIn ?? true,
         }),
       });
       const data = await res.json();
@@ -171,63 +138,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!res.ok) throw new Error(data.error || "Failed to reset password");
   };
 
-  const saveRecommendation = async (payload: {
-    headline: string;
-    summary: string;
-    answers: QuestionAnswer[];
-    picks: PickItem[];
-    nextSteps: string[];
-  }) => {
-    if (!token) throw new Error("Must be logged in to save recommendations");
-    const res = await apiFetch("/api/user/recommendations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to save recommendation");
-    const savedRec = data as SavedRecommendation;
-
-    queryClient.setQueryData<UserProfile | null>(["auth", "me", token], (prev) =>
-      prev
-        ? {
-            ...prev,
-            savedAnswers: payload.answers,
-            savedRecommendations: [savedRec, ...(prev.savedRecommendations || [])],
-          }
-        : null
-    );
-
-    return savedRec;
-  };
-
-  const updateSavedAnswers = async (answers: QuestionAnswer[]) => {
-    if (!token) throw new Error("Must be logged in to update answers");
-    const res = await apiFetch("/api/user/answers", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(answers),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to update answers");
-    const updatedProfile = data as UserProfile;
-    queryClient.setQueryData(["auth", "me", token], updatedProfile);
-  };
-
   const logout = () => {
     setToken(null);
     localStorage.removeItem(TOKEN_KEY);
     queryClient.removeQueries({ queryKey: ["auth"] });
   };
 
-  const login = (email: string, password: string) => loginMutation.mutateAsync({ email, password }).then(() => {});
-  const signup = (name: string, email: string, password: string) => signupMutation.mutateAsync({ name, email, password }).then(() => {});
+  const login = (email: string, password: string) =>
+    loginMutation.mutateAsync({ email, password }).then(() => {});
+  const signup = (name: string, email: string, password: string, newsletterOptIn = true) =>
+    signupMutation.mutateAsync({ name, email, password, newsletterOptIn }).then(() => {});
   const googleLogin = (options?: { credential?: string; email?: string; name?: string }) =>
     googleLoginMutation.mutateAsync(options).then(() => {});
 
@@ -242,8 +162,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         googleLogin,
         requestOTP,
         resetPassword,
-        saveRecommendation,
-        updateSavedAnswers,
         logout,
       }}
     >

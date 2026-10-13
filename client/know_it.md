@@ -1,40 +1,73 @@
-# Cash & Choices: Platform Overview
+# Financial Literacy Experience
 
-This document highlights the core features of Cash & Choices, its unique user-centric market positioning, and the scale capabilities of its Vercel-hosted architecture.
+Cash&Choices is an educational platform that helps people understand financial
+terms and products. It presents neutral explanations and factual comparisons so
+people can learn what questions to ask and make their own decisions.
 
-## 1. Core Features & Market Uniqueness
+## Product boundaries
 
-Cash & Choices stands out in a crowded market by prioritizing **privacy, education, and transparency** over aggressive monetization and data mining. 
+- Do not generate personalized investment recommendations or tell a user which
+  product they should choose.
+- Do not assign product-fit, decision, or financial-health scores.
+- Do not rank products, mark a product as the winner, or imply that past returns
+  predict future performance.
+- Explain relevant features, costs, risks, liquidity, lock-ins, and tax
+  considerations in plain language.
+- Make educational-purpose and non-advice disclosures visible wherever users
+  explore or compare financial products.
+- Prefer sourceable facts, identify uncertainty, and direct readers to current
+  official documents for product terms.
+- Do not claim that product copy or disclaimers establish SEBI compliance;
+  obtain qualified regulatory and legal review.
 
-| Feature | Market Standard | Cash & Choices Uniqueness |
-| :--- | :--- | :--- |
-| **Financial Decision Engine** | Requires bank logins, PAN, or portfolio uploads to generate a profile. | **100% Zero-PII.** Asks some behavioral questions to build a highly accurate investor persona without ever touching sensitive data. |
-| **Recommendation Engine** | Driven by affiliate commissions and sponsored placements. | **Zero-Affiliate.** Picks are curated objectively based on cost, consistency, and risk-adjusted returns with plain-English reasons for every pick. |
-| **Hidden Charges Explorer** | Buried in fine print, PDFs, and obscure terms & conditions. | **Visual & Transparent.** Brings brokerage, GST, expense ratios, and penalties to the forefront before the user commits. |
-| **Calculators Hub** | Basic outputs, often used as lead-generation forms demanding an email. | **Local-First & Comprehensive.** Runs offline. Factors in real-world constraints like inflation, tax brackets, and effective returns. |
-| **Side-by-Side Comparison** | Often limits comparisons to similar asset classes (e.g., MF vs MF). | **Cross-Asset Comparison.** Compare credit cards, funds, and loans side-by-side with objective decision scores (Risk, Liquidity, Tax). |
+## Learning and exploration areas
 
-> [!TIP]
-> **User-Centric Philosophy**
-> Traditional apps trade user data for convenience. Cash & Choices flips this model, providing premium institutional-grade decision tooling while guaranteeing that data like salaries, savings, and net worth never leave the user's browser.
+### Mutual funds
 
----
+- Browse and search illustrative fund examples by category.
+- Present available product facts and historical metrics with their source and
+  as-of date where available.
+- Explain concepts such as NAV, benchmark, expense ratio, exit load, tracking
+  error, risk, and historical returns.
+- Allow side-by-side comparison of factual attributes without scoring,
+  highlighting a "best" choice, or ranking the funds.
+- Make clear that historical performance is not a guarantee or indication of
+  future results.
 
-## 2. Infrastructure & Scale on Vercel
+### Costs, calculators, and concepts
 
-The platform (both frontend and backend) is hosted entirely on **Vercel**, utilizing their Edge Network and Serverless Functions architecture. This ensures high availability and instantaneous global delivery.
+- Explain common charges, including brokerage, taxes, expense ratios, forex
+  fees, and penalties.
+- Provide calculators as educational estimates; show assumptions and clarify
+  that actual terms, tax treatment, and outcomes can differ.
+- Explain concepts such as EMI, funds, taxes, tax regimes, hidden charges,
+  liquidity, risk, and compounding without directing users to a specific
+  product.
 
-### How Many Users Can It Handle?
+### Weekly learning newsletter
 
-Because Cash & Choices is built on a serverless paradigm, it does not rely on a traditional fixed server (like an EC2 instance) that crashes when overloaded. It scales automatically based on incoming traffic.
+The current newsletter workflow is preview-only:
 
-#### Standard Scaling Metrics (Vercel Pro/Enterprise Tier baseline):
+1. An allowlisted admin supplies India-market notes and source URLs.
+2. AI drafts a concise market summary and a short lesson on the admin's chosen
+   topic.
+3. An admin reviews and edits the content, verifies the sources, then marks the
+   edition reviewed.
+4. Each UTC week permits one edition. The preview includes an educational-use
+   footer; it is not emailed to subscribers.
 
-- **Concurrent Users:** Virtually unlimited. Serverless functions spin up in milliseconds to handle new requests in parallel.
-- **Traffic Capacity:** Easily supports **100,000+ to 1,000,000+ Monthly Active Users (MAUs)** depending on API efficiency and database connections.
-- **Bandwidth:** Global CDN absorbs static asset hits (images, CSS, JS), meaning the core frontend can serve thousands of requests per second without breaking a sweat.
-- **Compute (Backend APIs):** Vercel can handle thousands of function invocations per second. The primary bottleneck will never be the hosting, but rather downstream third-party APIs (like `mfapi.in` for live NAVs) or your database connection pooling.
+Users can opt in during sign-up and manage their preference from their account.
+An existing unsubscribe is preserved during sign-in. Do not add email delivery
+or automatic scheduling without implementing appropriate consent, unsubscribe,
+privacy, and legal requirements.
 
-> [!NOTE]
-> **Performance Optimization**
-> Since the calculators and questionnaires are **Local-First** (running directly in the user's browser using React state and localStorage), they consume **zero** backend resources. This dramatically reduces server load, allowing the Vercel backend to comfortably support massive traffic spikes effortlessly.
+## Interface requirements
+
+- Lead with financial literacy and learning, not recommendations.
+- Keep educational-purpose and non-advice notices close to product information
+  and comparisons.
+- Use neutral labels such as "example", "learn", "compare facts", and
+  "understand trade-offs"; avoid "best", "top pick", "recommended", and
+  personalized-fit claims.
+- Do not show scores, ranked lists, winner badges, or calls to action that
+  direct a user to buy, sell, or invest in a named product.

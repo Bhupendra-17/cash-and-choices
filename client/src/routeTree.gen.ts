@@ -19,6 +19,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RecommendRouteImport } from './routes/recommend'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as AdminNewsletterRouteImport } from './routes/admin.newsletter'
 import { Route as CalculatorsTypeRouteImport } from './routes/calculators.$type'
 import { Route as FundsCodeRouteImport } from './routes/funds.$code'
 import { Route as FundsCompareRouteImport } from './routes/funds.compare'
@@ -73,6 +74,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminNewsletterRoute = AdminNewsletterRouteImport.update({
+  id: '/admin/newsletter',
+  path: '/admin/newsletter',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CalculatorsTypeRoute = CalculatorsTypeRouteImport.update({
   id: '/$type',
   path: '/$type',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/recommend': typeof RecommendRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/newsletter': typeof AdminNewsletterRoute
   '/calculators/$type': typeof CalculatorsTypeRoute
   '/funds/$code': typeof FundsCodeRoute
   '/funds/compare': typeof FundsCompareRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/recommend': typeof RecommendRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/newsletter': typeof AdminNewsletterRoute
   '/calculators/$type': typeof CalculatorsTypeRoute
   '/funds/$code': typeof FundsCodeRoute
   '/funds/compare': typeof FundsCompareRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/recommend': typeof RecommendRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/newsletter': typeof AdminNewsletterRoute
   '/calculators/$type': typeof CalculatorsTypeRoute
   '/funds/$code': typeof FundsCodeRoute
   '/funds/compare': typeof FundsCompareRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommend'
     | '/sitemap.xml'
+    | '/admin/newsletter'
     | '/calculators/$type'
     | '/funds/$code'
     | '/funds/compare'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommend'
     | '/sitemap.xml'
+    | '/admin/newsletter'
     | '/calculators/$type'
     | '/funds/$code'
     | '/funds/compare'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommend'
     | '/sitemap.xml'
+    | '/admin/newsletter'
     | '/calculators/$type'
     | '/funds/$code'
     | '/funds/compare'
@@ -194,6 +206,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   RecommendRoute: typeof RecommendRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AdminNewsletterRoute: typeof AdminNewsletterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -268,6 +281,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/newsletter': {
+      id: '/admin/newsletter'
+      path: '/admin/newsletter'
+      fullPath: '/admin/newsletter'
+      preLoaderRoute: typeof AdminNewsletterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/calculators/$type': {
       id: '/calculators/$type'
       path: '/$type'
@@ -327,6 +347,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   RecommendRoute: RecommendRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AdminNewsletterRoute: AdminNewsletterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

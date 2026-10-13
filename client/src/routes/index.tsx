@@ -335,13 +335,7 @@ function LandingPage() {
                 alt="Person using a laptop privately while making financial decisions"
                 className="absolute inset-0 size-full object-cover object-center"
               />
-              <div className="absolute inset-x-5 bottom-5 rounded-2xl border border-white/70 bg-white/85 p-5 shadow-soft backdrop-blur-sm sm:inset-x-8 sm:bottom-8 sm:p-6">
-                <ShieldCheck className="size-7 text-brand-deep" />
-                <p className="mt-3 text-lg font-semibold leading-snug text-muted-foreground sm:text-xl">
-                  "You shouldn't have to hand over your bank login to compare a mutual fund."
-                </p>
-                <p className="mt-3 text-sm text-muted-foreground">The reason we exist.</p>
-              </div>
+              
             </div>
           </div>
         </div>

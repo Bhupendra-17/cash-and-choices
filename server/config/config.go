@@ -19,6 +19,7 @@ type Config struct {
 	SMTPPassword   string
 	SMTPFrom       string
 	GoogleClientID string
+	NewsletterAdminEmails string
 }
 
 func loadEnvFile(filename string) {
@@ -117,5 +118,6 @@ func LoadConfig() *Config {
 		SMTPPassword:   os.Getenv("SMTP_PASSWORD"),
 		SMTPFrom:       smtpFrom,
 		GoogleClientID: os.Getenv("GOOGLE_CLIENT_ID"),
+		NewsletterAdminEmails: os.Getenv("NEWSLETTER_ADMIN_EMAILS"),
 	}
 }

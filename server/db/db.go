@@ -116,9 +116,33 @@ func migrateSchemas(db *sql.DB) error {
 		created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);
 
+	CREATE TABLE IF NOT EXISTS newsletter_subscriptions (
+		email VARCHAR(255) PRIMARY KEY,
+		is_subscribed BOOLEAN NOT NULL DEFAULT FALSE,
+		source VARCHAR(64) NOT NULL DEFAULT 'account',
+		consented_at TIMESTAMPTZ,
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE TABLE IF NOT EXISTS newsletter_editions (
+		id VARCHAR(64) PRIMARY KEY,
+		week_start DATE NOT NULL UNIQUE,
+		status VARCHAR(16) NOT NULL DEFAULT 'draft',
+		subject VARCHAR(160) NOT NULL,
+		preheader VARCHAR(180) NOT NULL,
+		market_summary TEXT NOT NULL,
+		lesson_title VARCHAR(180) NOT NULL,
+		lesson_body TEXT NOT NULL,
+		market_sources TEXT NOT NULL,
+		footer TEXT NOT NULL,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		validated_at TIMESTAMPTZ
+	);
+
 	CREATE INDEX IF NOT EXISTS idx_analytics_email_type ON user_analytics_events(user_email, event_type);
 	CREATE INDEX IF NOT EXISTS idx_featured_funds_cat ON featured_funds(category, popularity_score DESC);
 	CREATE INDEX IF NOT EXISTS idx_fund_interactions_user ON user_fund_interactions(user_email, scheme_code);
+	CREATE INDEX IF NOT EXISTS idx_newsletter_subscribed ON newsletter_subscriptions(is_subscribed);
 	`
 
 	_, err := db.Exec(schema)
