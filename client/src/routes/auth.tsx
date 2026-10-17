@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,10 @@ function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [googleRetryable, setGoogleRetryable] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const oauthCallbackHandled = useRef(false);
 
   // Form states
   const [name, setName] = useState("");
@@ -70,10 +73,25 @@ function AuthPage() {
       const params = new URLSearchParams(hash ? hash.substring(1) : query);
       const idToken = params.get("id_token");
       const accessToken = params.get("access_token");
+      const providerError = params.get("error");
+
+      if (oauthCallbackHandled.current) return;
+
+      if (providerError) {
+        oauthCallbackHandled.current = true;
+        window.history.replaceState(null, "", window.location.pathname);
+        setGoogleError("Google sign-in didn't complete. Please try again.");
+        setGoogleRetryable(true);
+        setLoading(false);
+        return;
+      }
 
       if (idToken || accessToken) {
+        oauthCallbackHandled.current = true;
         setLoading(true);
         setError(null);
+        setGoogleError(null);
+        setGoogleRetryable(false);
         try {
           let email = "";
           let name = "";
@@ -108,8 +126,10 @@ function AuthPage() {
           // Clean URL parameters from browser address bar
           window.history.replaceState(null, "", window.location.pathname);
           navigate({ to: "/profile" });
-        } catch (err: any) {
-          setError(err.message || "Google Authentication failed");
+        } catch {
+          window.history.replaceState(null, "", window.location.pathname);
+          setGoogleError("Google sign-in failed. Please try again.");
+          setGoogleRetryable(true);
         } finally {
           setLoading(false);
         }
@@ -171,13 +191,15 @@ function AuthPage() {
   const handleGoogleSubmit = async () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
-      setError(
-        "Google OAuth is not configured yet. Please add VITE_GOOGLE_CLIENT_ID to client/.env with your Google Cloud Console Client ID."
-      );
+      setGoogleError("Google sign-in is temporarily unavailable. Please try again later.");
+      setGoogleRetryable(false);
       return;
     }
 
     setError(null);
+    setGoogleError(null);
+    setGoogleRetryable(false);
+    setLoading(true);
     sessionStorage.setItem("cash_choices_newsletter_opt_in", String(newsletterOptIn));
     const redirectUri = window.location.origin + "/auth";
     const nonce = Math.random().toString(36).substring(2);
@@ -320,6 +342,31 @@ function AuthPage() {
                   ? "Signing in adds you to the weekly financial-literacy email if you are not already subscribed. You can unsubscribe from your account."
                   : "New accounts can choose whether to subscribe to the weekly financial-literacy email below."}
               </p>
+
+              {googleError && (
+                <div
+                  role="alert"
+                  className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400"
+                >
+                  <span className="flex items-center gap-2">
+                    <AlertCircle className="size-4 shrink-0" />
+                    {googleError}
+                  </span>
+                  {googleRetryable && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGoogleSubmit}
+                      disabled={loading}
+                      className="shrink-0 rounded-full"
+                    >
+                      <RefreshCw className="mr-1 size-3" />
+                      Try again
+                    </Button>
+                  )}
+                </div>
+              )}
 
               <div className="relative my-6 text-center text-xs uppercase tracking-wider text-muted-foreground">
                 <span className="relative z-10 bg-card px-3">or continue with email</span>

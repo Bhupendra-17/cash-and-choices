@@ -15,6 +15,40 @@ CREATE TABLE IF NOT EXISTS user_tokens (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS newsletter_subscriptions (
+    email VARCHAR(255) PRIMARY KEY,
+    is_subscribed BOOLEAN NOT NULL DEFAULT FALSE,
+    source VARCHAR(64) NOT NULL DEFAULT 'account',
+    consented_at TIMESTAMPTZ,
+    unsubscribe_token VARCHAR(64) UNIQUE,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS newsletter_editions (
+    id VARCHAR(64) PRIMARY KEY,
+    week_start DATE NOT NULL UNIQUE,
+    status VARCHAR(16) NOT NULL DEFAULT 'draft',
+    subject VARCHAR(160) NOT NULL,
+    preheader VARCHAR(180) NOT NULL,
+    market_summary TEXT NOT NULL,
+    lesson_title VARCHAR(180) NOT NULL,
+    lesson_body TEXT NOT NULL,
+    market_sources TEXT NOT NULL,
+    footer TEXT NOT NULL,
+    content_json TEXT NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    validated_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS newsletter_deliveries (
+    edition_id VARCHAR(64) NOT NULL REFERENCES newsletter_editions(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    error TEXT NOT NULL DEFAULT '',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (edition_id, email)
+);
+
 CREATE TABLE IF NOT EXISTS user_answers (
     email VARCHAR(255) NOT NULL REFERENCES users(email) ON DELETE CASCADE,
     question_id VARCHAR(64) NOT NULL,

@@ -231,8 +231,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loginMutation.mutateAsync({ email, password }).then(() => {});
   const signup = (name: string, email: string, password: string, newsletterOptIn = true) =>
     signupMutation.mutateAsync({ name, email, password, newsletterOptIn }).then(() => {});
-  const googleLogin = (options?: { credential?: string; email?: string; name?: string }) =>
-    googleLoginMutation.mutateAsync(options).then(() => {});
+  const googleLoginAsync = googleLoginMutation.mutateAsync;
+  const googleLogin = useCallback(
+    (options?: { credential?: string; email?: string; name?: string }) =>
+      googleLoginAsync(options).then(() => {}),
+    [googleLoginAsync],
+  );
 
   return (
     <AuthContext.Provider

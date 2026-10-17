@@ -129,8 +129,11 @@ func migrateSchemas(db *sql.DB) error {
 		is_subscribed BOOLEAN NOT NULL DEFAULT FALSE,
 		source VARCHAR(64) NOT NULL DEFAULT 'account',
 		consented_at TIMESTAMPTZ,
+		unsubscribe_token VARCHAR(64) UNIQUE,
 		updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);
+
+	ALTER TABLE newsletter_subscriptions ADD COLUMN IF NOT EXISTS unsubscribe_token VARCHAR(64) UNIQUE;
 
 	CREATE TABLE IF NOT EXISTS newsletter_editions (
 		id VARCHAR(64) PRIMARY KEY,
@@ -143,8 +146,20 @@ func migrateSchemas(db *sql.DB) error {
 		lesson_body TEXT NOT NULL,
 		market_sources TEXT NOT NULL,
 		footer TEXT NOT NULL,
+		content_json TEXT NOT NULL DEFAULT '{}',
 		created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		validated_at TIMESTAMPTZ
+	);
+
+	ALTER TABLE newsletter_editions ADD COLUMN IF NOT EXISTS content_json TEXT NOT NULL DEFAULT '{}';
+
+	CREATE TABLE IF NOT EXISTS newsletter_deliveries (
+		edition_id VARCHAR(64) NOT NULL REFERENCES newsletter_editions(id) ON DELETE CASCADE,
+		email VARCHAR(255) NOT NULL,
+		status VARCHAR(16) NOT NULL,
+		error TEXT NOT NULL DEFAULT '',
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (edition_id, email)
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_analytics_email_type ON user_analytics_events(user_email, event_type);

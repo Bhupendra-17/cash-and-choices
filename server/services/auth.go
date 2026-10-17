@@ -716,6 +716,7 @@ func (s *AuthService) DeleteAccount(tokenHeader string) error {
 
 		for _, query := range []string{
 			"DELETE FROM newsletter_subscriptions WHERE email = $1",
+			"DELETE FROM newsletter_deliveries WHERE email = $1",
 			"DELETE FROM user_analytics_events WHERE user_email = $1",
 			"DELETE FROM user_fund_interactions WHERE user_email = $1",
 			"DELETE FROM otps WHERE email = $1",

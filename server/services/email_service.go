@@ -19,7 +19,10 @@ func NewEmailService(cfg *config.Config) *EmailService {
 }
 
 func (e *EmailService) IsSMTPConfigured() bool {
-	return e.cfg != nil && strings.TrimSpace(e.cfg.SMTPHost) != "" && strings.TrimSpace(e.cfg.SMTPUsername) != ""
+	return e.cfg != nil &&
+		strings.TrimSpace(e.cfg.SMTPHost) != "" &&
+		strings.TrimSpace(e.cfg.SMTPUsername) != "" &&
+		strings.TrimSpace(e.cfg.SMTPPassword) != ""
 }
 
 func (e *EmailService) SendOTPEmail(recipientEmail, otp string) error {

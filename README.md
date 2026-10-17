@@ -86,6 +86,10 @@ go test ./...
   from admin-provided market notes, source URLs, and a learning topic.
 - `POST /api/newsletter/admin/validate`: save the reviewed edition. This does
   not send email.
+- `POST /api/newsletter/admin/send`: manually send a reviewed edition to active
+  subscribers; requires a separate confirmation and an allowlisted admin.
+- `GET /api/newsletter/unsubscribe?token=...`: show the subscriber unsubscribe
+  confirmation page; `POST` to the same URL processes the unsubscribe.
 
 ## Sign-in session storage
 
@@ -94,10 +98,13 @@ After sign-in, the browser stores the bearer token in local storage with a
 returned to the signed-out state; signing out also clears the stored token and
 expiry. The current implementation uses local storage rather than cookies.
 
-## Weekly financial-literacy newsletter (preview mode)
+## Weekly financial-literacy newsletter
 
-The newsletter is currently a manual preview and review workflow. It is not an
-automated mailing list campaign.
+The newsletter uses the “The Money Byte” email format: a money term with an
+example and practical checks, three sourced news stories, a short action, and an
+educational-purpose footer. An allowlisted admin reviews an edition and
+explicitly sends it from the newsletter admin page. There is no automatic
+scheduling.
 
 - Configure `NEWSLETTER_ADMIN_EMAILS` on the server as a comma-separated
   allowlist of admin account email addresses. Admin newsletter actions require
@@ -110,18 +117,26 @@ automated mailing list campaign.
   chooses a learning topic. AI creates an editable draft using only the
   supplied material. The admin must verify the facts and wording before
   marking it reviewed.
-- Newsletter sections include an Indian-market summary, a short financial
-  lesson, and a fixed educational-purpose footer.
-- Only one edition can be created per UTC week. The admin page can preview and
-  validate one edition; it does not send email, fetch live news, or schedule
-  future editions.
+- Sending is a separate action and only includes currently active newsletter
+  subscribers. Each email includes a unique unsubscribe link and supports
+  one-click unsubscribe POSTs. Failed deliveries can be retried without
+  resending recipients already recorded as delivered.
+- Only one edition can be created per UTC week. News is not fetched live and
+  delivery is not scheduled.
+- Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and
+  `SMTP_FROM` (or `SMTP_FROM_EMAIL`) on the server. Port 587 uses STARTTLS; port
+  465 uses direct TLS. Configure `PUBLIC_SITE_URL` as the public HTTPS URL used
+  for the website and `PUBLIC_API_URL` as the public HTTPS backend URL used by
+  unsubscribe links (it may include a trailing `/api`).
 - Set `OPENAI_API_KEY` on the server for AI draft generation.
 - Persistent newsletter subscription and edition data require `DATABASE_URL`.
   Without it, the server's in-memory mode does not preserve newsletter data
   across restarts.
 
-Before enabling email delivery, add a mailing provider, reliable scheduling,
-unsubscribe handling in delivered messages, and regulatory/legal review.
+Test sending with a controlled subscriber list and verify the sender domain's
+SPF, DKIM, and DMARC configuration before sending to a larger audience. Obtain
+qualified privacy, consent, and regulatory/legal review before production
+campaigns.
 
 ## Learning profile and account deletion
 

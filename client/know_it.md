@@ -44,31 +44,25 @@ people can learn what questions to ask and make their own decisions.
   liquidity, risk, and compounding without directing users to a specific
   product.
 
-### Weekly learning newsletter
+### Weekly learning newsletter — The Money Byte
 
-The newsletter workflow is preview-and-review only (no automatic mailing by
-default). Each edition contains three short sections to keep content concise and
-useful:
+The Money Byte is an admin-prepared financial-literacy email with a money term
+and worked example, three sourced news stories, a short practical check, and an
+educational-purpose footer. AI drafts are based only on notes and source links
+provided by an allowlisted admin. The admin must verify every claim and link,
+mark the content reviewed, then separately confirm a manual send.
 
-1. Current India market trends — a very short, sourced summary of notable
-   items relevant to retail investors.
-2. A short educational lesson — a brief primer on a topic such as funds, EMI,
-   taxes, new regimes, hidden charges, or related subjects (written for clarity
-   and non-technical readers).
-3. An educational-purpose footer — a short reminder that content is for
-   educational purposes only and not financial advice.
-
-Key notes:
-
-- Admins create a draft by supplying market notes and source URLs; an AI draft
-  may be produced from those sources to speed authoring. The admin must review
-  and validate the draft before it is marked reviewed.
-- Only one edition is allowed per UTC week; the admin preview page shows the
-  current week's draft and the subscriber count (preview-only during testing).
-- Users are auto-subscribed on first sign-up/login unless they previously
-  opted out; they can manage their subscription from their Profile page.
-- Do not enable automated sending or scheduling without explicit consent,
-  unsubscribe handling, privacy/retention policies, and legal/regulatory review.
+- Sending uses server-side SMTP configuration and targets only currently active
+  newsletter subscribers. It is not scheduled or automated.
+- Each campaign email includes a unique unsubscribe link. The server processes
+  unsubscribe confirmations and one-click unsubscribe requests.
+- Failed deliveries can be retried without resending recipients already
+  recorded as delivered.
+- Only one edition is created per UTC week. The admin page shows the edition
+  status and active subscriber count.
+- Users manage their newsletter preference from their Profile page. Do not
+  change consent behavior or enable automated sending without privacy and
+  regulatory/legal review.
 
 ## Interface requirements
 

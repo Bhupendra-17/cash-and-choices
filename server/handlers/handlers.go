@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +22,7 @@ type APIHandler struct {
 	analyticsService  *services.AnalyticsService
 	featuredService   *services.FeaturedFundsService
 	newsletterService *services.NewsletterService
+	emailService      *services.EmailService
 }
 
 const newsletterFooter = "Cash&Choices is a financial literacy platform. This email is for general educational purposes only. It is not investment advice, a personalized recommendation, or a solicitation to buy or sell securities. Consider a SEBI-registered investment adviser for advice tailored to your circumstances."
@@ -33,6 +35,7 @@ func NewAPIHandler(
 	analytics *services.AnalyticsService,
 	featured *services.FeaturedFundsService,
 	newsletter *services.NewsletterService,
+	email *services.EmailService,
 ) *APIHandler {
 	return &APIHandler{
 		mfService:         mf,
@@ -42,6 +45,7 @@ func NewAPIHandler(
 		analyticsService:  analytics,
 		featuredService:   featured,
 		newsletterService: newsletter,
+		emailService:      email,
 	}
 }
 
@@ -311,7 +315,17 @@ func (h *APIHandler) NewsletterAdminCurrent(w http.ResponseWriter, r *http.Reque
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondJSON(w, http.StatusOK, map[string]any{"edition": edition, "subscriberCount": subscribers})
+	deliveries := services.NewsletterSendResult{}
+	if edition != nil {
+		deliveries, err = h.newsletterService.DeliveryCounts(edition.ID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	respondJSON(w, http.StatusOK, map[string]any{
+		"edition": edition, "subscriberCount": subscribers, "delivery": deliveries,
+	})
 }
 
 func (h *APIHandler) NewsletterAdminCreateDraft(w http.ResponseWriter, r *http.Request) {
@@ -348,10 +362,10 @@ func (h *APIHandler) NewsletterAdminCreateDraft(w http.ResponseWriter, r *http.R
 	messages := []services.ChatMessage{
 		{
 			Role: "system",
-			Content: `You are an Indian financial-literacy newsletter editor. Write a concise weekly educational email in plain language.
-Use only the market facts and source notes provided. Do not invent events, numbers, dates, sources, or claims. If the notes do not support a useful trend summary, explicitly say the supplied sources need more detail.
-The lesson explains general concepts, not what the reader should buy, sell, hold, or choose. Never personalize, rank, endorse products, predict returns, or give investment/tax/legal advice. Avoid urgency and hype.
-Return only JSON with string fields: subject (<=90 characters), preheader (<=130), marketSummary (<=500), lessonTitle (<=100), lessonBody (<=700).`,
+			Content: `You are an Indian financial-literacy newsletter editor. Draft a concise weekly educational email in plain language.
+Use only the market facts and source notes provided. Do not invent events, numbers, dates, sources, or claims. Include exactly three stories, with their source URLs taken verbatim from the notes. If there are not three verifiable stories and a supporting official URL for the learning term, explain that the notes need more detail in the relevant content rather than inventing anything.
+Explain a general money term, not what the reader should buy, sell, hold, or choose. Never personalize, rank, endorse products, predict returns, or give investment/tax/legal advice. Avoid urgency and hype. The weekly action must be general and non-directive.
+Return only JSON using this structure: subject (<=90 chars), preheader (<=130 chars), term {name, category, definition, whenCharged, example, howToAvoid (array of 1-5 short strings), officialUrl}, stories (array of exactly 3 objects with category, title, summary, whyItMatters, sourceName, sourceUrl), actionOfTheWeek. URLs must be HTTPS links present in the source notes.`,
 		},
 		{
 			Role:    "user",
@@ -370,6 +384,9 @@ Return only JSON with string fields: subject (<=90 characters), preheader (<=130
 	}
 	content.MarketSources = req.MarketSources
 	content.Footer = newsletterFooter
+	content.MarketSummary = ""
+	content.LessonTitle = content.Term.Name
+	content.LessonBody = content.Term.Definition
 	if err := validateNewsletterContent(content); err != nil {
 		respondError(w, http.StatusBadGateway, err.Error())
 		return
@@ -416,6 +433,27 @@ func (h *APIHandler) NewsletterAdminValidate(w http.ResponseWriter, r *http.Requ
 	req.NewsletterContent.LessonBody = strings.TrimSpace(req.NewsletterContent.LessonBody)
 	req.NewsletterContent.MarketSources = strings.TrimSpace(req.NewsletterContent.MarketSources)
 	req.NewsletterContent.Footer = strings.TrimSpace(req.NewsletterContent.Footer)
+	req.NewsletterContent.Term.Name = strings.TrimSpace(req.NewsletterContent.Term.Name)
+	req.NewsletterContent.Term.Category = strings.TrimSpace(req.NewsletterContent.Term.Category)
+	req.NewsletterContent.Term.Definition = strings.TrimSpace(req.NewsletterContent.Term.Definition)
+	req.NewsletterContent.Term.WhenCharged = strings.TrimSpace(req.NewsletterContent.Term.WhenCharged)
+	req.NewsletterContent.Term.Example = strings.TrimSpace(req.NewsletterContent.Term.Example)
+	req.NewsletterContent.Term.OfficialURL = strings.TrimSpace(req.NewsletterContent.Term.OfficialURL)
+	req.NewsletterContent.ActionOfTheWeek = strings.TrimSpace(req.NewsletterContent.ActionOfTheWeek)
+	for i := range req.NewsletterContent.Term.HowToAvoid {
+		req.NewsletterContent.Term.HowToAvoid[i] = strings.TrimSpace(req.NewsletterContent.Term.HowToAvoid[i])
+	}
+	for i := range req.NewsletterContent.Stories {
+		story := &req.NewsletterContent.Stories[i]
+		story.Category = strings.TrimSpace(story.Category)
+		story.Title = strings.TrimSpace(story.Title)
+		story.Summary = strings.TrimSpace(story.Summary)
+		story.WhyItMatters = strings.TrimSpace(story.WhyItMatters)
+		story.SourceName = strings.TrimSpace(story.SourceName)
+		story.SourceURL = strings.TrimSpace(story.SourceURL)
+	}
+	req.NewsletterContent.LessonTitle = req.NewsletterContent.Term.Name
+	req.NewsletterContent.LessonBody = req.NewsletterContent.Term.Definition
 	if err := validateNewsletterContent(req.NewsletterContent); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
@@ -458,14 +496,45 @@ func validateNewsletterContent(content services.NewsletterContent) error {
 	if len(content.Preheader) == 0 || len(content.Preheader) > 130 {
 		return fmt.Errorf("preheader must be between 1 and 130 characters")
 	}
-	if len(content.MarketSummary) == 0 || len(content.MarketSummary) > 500 {
-		return fmt.Errorf("market summary must be between 1 and 500 characters")
+	if len(content.Term.Name) == 0 || len(content.Term.Name) > 100 ||
+		len(content.Term.Category) == 0 || len(content.Term.Category) > 80 {
+		return fmt.Errorf("money term name and category are required")
 	}
-	if len(content.LessonTitle) == 0 || len(content.LessonTitle) > 100 {
-		return fmt.Errorf("lesson title must be between 1 and 100 characters")
+	if len(content.Term.Definition) == 0 || len(content.Term.Definition) > 1200 {
+		return fmt.Errorf("money term definition must be between 1 and 1200 characters")
 	}
-	if len(content.LessonBody) == 0 || len(content.LessonBody) > 700 {
-		return fmt.Errorf("lesson body must be between 1 and 700 characters")
+	if len(content.Term.WhenCharged) == 0 || len(content.Term.WhenCharged) > 700 ||
+		len(content.Term.Example) == 0 || len(content.Term.Example) > 700 {
+		return fmt.Errorf("money term charge details and example are required (up to 700 characters each)")
+	}
+	if len(content.Term.HowToAvoid) < 1 || len(content.Term.HowToAvoid) > 5 {
+		return fmt.Errorf("provide 1 to 5 money term tips")
+	}
+	for _, tip := range content.Term.HowToAvoid {
+		if len(tip) == 0 || len(tip) > 240 {
+			return fmt.Errorf("each money term tip must be between 1 and 240 characters")
+		}
+	}
+	if !validHTTPSURL(content.Term.OfficialURL) {
+		return fmt.Errorf("money term official link must be a valid HTTPS URL")
+	}
+	if len(content.Stories) != 3 {
+		return fmt.Errorf("include exactly three sourced news stories")
+	}
+	for _, story := range content.Stories {
+		if len(story.Category) == 0 || len(story.Category) > 60 ||
+			len(story.Title) == 0 || len(story.Title) > 160 ||
+			len(story.Summary) == 0 || len(story.Summary) > 800 ||
+			len(story.WhyItMatters) == 0 || len(story.WhyItMatters) > 500 ||
+			len(story.SourceName) == 0 || len(story.SourceName) > 120 {
+			return fmt.Errorf("each news story must include a category, title, summary, impact, and source")
+		}
+		if !validHTTPSURL(story.SourceURL) {
+			return fmt.Errorf("each news story source must be a valid HTTPS URL")
+		}
+	}
+	if len(content.ActionOfTheWeek) == 0 || len(content.ActionOfTheWeek) > 500 {
+		return fmt.Errorf("the 60-second money check must be between 1 and 500 characters")
 	}
 	if len(content.MarketSources) < 20 || len(content.MarketSources) > 8000 {
 		return fmt.Errorf("market sources must be between 20 and 8000 characters")
@@ -477,6 +546,153 @@ func validateNewsletterContent(content services.NewsletterContent) error {
 		return fmt.Errorf("the educational-purpose footer disclaimer cannot be changed")
 	}
 	return nil
+}
+
+func validHTTPSURL(value string) bool {
+	parsed, err := url.ParseRequestURI(value)
+	return err == nil && parsed.Scheme == "https" && parsed.Host != "" && parsed.User == nil
+}
+
+func (h *APIHandler) NewsletterAdminSend(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.requireNewsletterAdmin(w, r); !ok {
+		return
+	}
+	if h.emailService == nil || !h.emailService.IsSMTPConfigured() {
+		respondError(w, http.StatusServiceUnavailable, "newsletter email is unavailable; configure SMTP_HOST, SMTP_USERNAME, and SMTP_PASSWORD")
+		return
+	}
+	var req struct {
+		ID            string `json:"id"`
+		SendConfirmed bool   `json:"sendConfirmed"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+	if !req.SendConfirmed {
+		respondError(w, http.StatusBadRequest, "confirm that the reviewed edition should be sent to active subscribers")
+		return
+	}
+	if strings.TrimSpace(req.ID) == "" {
+		respondError(w, http.StatusBadRequest, "newsletter edition id is required")
+		return
+	}
+	now := time.Now()
+	current, err := h.newsletterService.CurrentEdition(now)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if current == nil || current.ID != req.ID {
+		respondError(w, http.StatusNotFound, "this week's newsletter edition was not found")
+		return
+	}
+	if err := validateNewsletterContent(current.NewsletterContent); err != nil {
+		respondError(w, http.StatusConflict, "the reviewed edition is incomplete; edit and review a complete Money Byte edition before sending")
+		return
+	}
+	siteURL := h.emailService.PublicSiteURL()
+	if !validHTTPSURL(siteURL) {
+		respondError(w, http.StatusServiceUnavailable, "PUBLIC_SITE_URL must be configured as an HTTPS URL before sending")
+		return
+	}
+	apiURL := h.emailService.PublicAPIURL()
+	if !validHTTPSURL(apiURL) {
+		respondError(w, http.StatusServiceUnavailable, "PUBLIC_API_URL must be configured as an HTTPS URL before sending")
+		return
+	}
+	unsubscribePath := "/api/newsletter/unsubscribe"
+	if strings.HasSuffix(apiURL, "/api") {
+		unsubscribePath = "/newsletter/unsubscribe"
+	}
+	recipients, err := h.newsletterService.ActiveSubscribers()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if len(recipients) == 0 {
+		respondError(w, http.StatusConflict, "there are no active newsletter subscribers to send to")
+		return
+	}
+	edition, err := h.newsletterService.BeginSend(now, req.ID)
+	if errors.Is(err, services.ErrNewsletterEditionNotSendable) {
+		respondError(w, http.StatusConflict, "only a reviewed edition can be sent, and it cannot already be sending or sent")
+		return
+	}
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	result := services.NewsletterSendResult{}
+	for _, recipient := range recipients {
+		alreadySent, err := h.newsletterService.DeliverySent(edition.ID, recipient.Email)
+		if err != nil {
+			result.Failed++
+			continue
+		}
+		if alreadySent {
+			result.Sent++
+			continue
+		}
+		unsubscribeURL := apiURL + unsubscribePath + "?token=" + url.QueryEscape(recipient.UnsubscribeToken)
+		htmlBody, textBody, err := services.RenderMoneyByteEmail(edition, siteURL, unsubscribeURL)
+		if err == nil {
+			err = h.emailService.SendNewsletterEmail(recipient.Email, edition.Subject, unsubscribeURL, htmlBody, textBody)
+		}
+		status, detail := "sent", ""
+		if err != nil {
+			status = "failed"
+			detail = err.Error()
+			result.Failed++
+		} else {
+			result.Sent++
+		}
+		if err := h.newsletterService.RecordDelivery(edition.ID, recipient.Email, status, detail); err != nil {
+			result.Failed++
+		}
+	}
+	if err := h.newsletterService.FinishSend(now, edition.ID, result); err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	responseStatus := http.StatusOK
+	deliveryStatus := "sent"
+	if result.Failed > 0 {
+		responseStatus = http.StatusMultiStatus
+		deliveryStatus = "send_failed"
+	}
+	respondJSON(w, responseStatus, map[string]any{
+		"status":  deliveryStatus,
+		"sent":    result.Sent,
+		"failed":  result.Failed,
+		"message": fmt.Sprintf("Delivered to %d subscribers; %d deliveries failed.", result.Sent, result.Failed),
+	})
+}
+
+func (h *APIHandler) NewsletterUnsubscribe(w http.ResponseWriter, r *http.Request) {
+	token := strings.TrimSpace(r.URL.Query().Get("token"))
+	if r.Method == http.MethodGet {
+		if token == "" {
+			respondError(w, http.StatusBadRequest, "unsubscribe link is missing its token")
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintf(w, `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Unsubscribe · Cash&Choices</title><body style="font-family:Arial,sans-serif;max-width:560px;margin:4rem auto;padding:1rem;color:#29202d"><h1>Unsubscribe from The Money Byte</h1><p>Confirm below to stop receiving the weekly financial-literacy newsletter.</p><form method="post" action="/api/newsletter/unsubscribe?token=%s"><button style="padding:.8rem 1.2rem;border:0;border-radius:8px;background:#b445d2;color:white;font-weight:bold">Unsubscribe</button></form></body></html>`, url.QueryEscape(token))
+		return
+	}
+	updated, err := h.newsletterService.Unsubscribe(token)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "could not update newsletter preferences; please try again")
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if updated {
+		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><meta charset="utf-8"><title>Unsubscribed · Cash&Choices</title><body style="font-family:Arial,sans-serif;max-width:560px;margin:4rem auto;padding:1rem;color:#29202d"><h1>You’re unsubscribed</h1><p>You will no longer receive The Money Byte newsletter.</p></body></html>`)
+		return
+	}
+	_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><meta charset="utf-8"><title>Already unsubscribed · Cash&Choices</title><body style="font-family:Arial,sans-serif;max-width:560px;margin:4rem auto;padding:1rem;color:#29202d"><h1>Already unsubscribed</h1><p>This link is invalid or the subscription is already inactive.</p></body></html>`)
 }
 
 // POST /api/auth/request-otp

@@ -31,7 +31,7 @@ func init() {
 	featuredService := services.NewFeaturedFundsService(database, mfService)
 	newsletterService := services.NewNewsletterService(database, cfg.NewsletterAdminEmails)
 
-	apiHandler := handlers.NewAPIHandler(mfService, aiService, calcService, authService, analyticsService, featuredService, newsletterService)
+	apiHandler := handlers.NewAPIHandler(mfService, aiService, calcService, authService, analyticsService, featuredService, newsletterService, emailService)
 
 	mux := http.NewServeMux()
 
@@ -64,6 +64,9 @@ func init() {
 	mux.HandleFunc("GET /api/newsletter/admin/current", apiHandler.NewsletterAdminCurrent)
 	mux.HandleFunc("POST /api/newsletter/admin/draft", apiHandler.NewsletterAdminCreateDraft)
 	mux.HandleFunc("POST /api/newsletter/admin/validate", apiHandler.NewsletterAdminValidate)
+	mux.HandleFunc("POST /api/newsletter/admin/send", apiHandler.NewsletterAdminSend)
+	mux.HandleFunc("GET /api/newsletter/unsubscribe", apiHandler.NewsletterUnsubscribe)
+	mux.HandleFunc("POST /api/newsletter/unsubscribe", apiHandler.NewsletterUnsubscribe)
 
 	handler = corsMiddleware(cfg.AllowedOrigins, mux)
 }

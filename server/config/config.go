@@ -7,19 +7,21 @@ import (
 )
 
 type Config struct {
-	Port           string
-	APIKey         string
-	GatewayURL     string
-	Model          string
-	AllowedOrigins string
-	DatabaseURL    string
-	SMTPHost       string
-	SMTPPort       string
-	SMTPUsername   string
-	SMTPPassword   string
-	SMTPFrom       string
-	GoogleClientID string
+	Port                  string
+	APIKey                string
+	GatewayURL            string
+	Model                 string
+	AllowedOrigins        string
+	DatabaseURL           string
+	SMTPHost              string
+	SMTPPort              string
+	SMTPUsername          string
+	SMTPPassword          string
+	SMTPFrom              string
+	GoogleClientID        string
 	NewsletterAdminEmails string
+	PublicSiteURL         string
+	PublicAPIURL          string
 }
 
 func loadEnvFile(filename string) {
@@ -105,19 +107,27 @@ func LoadConfig() *Config {
 		smtpFrom = os.Getenv("SMTP_FROM_EMAIL")
 	}
 
+	publicSiteURL := strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_SITE_URL")), "/")
+	if publicSiteURL == "" {
+		publicSiteURL = "https://cash-and-choices.vercel.app"
+	}
+	publicAPIURL := strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_API_URL")), "/")
+
 	return &Config{
-		Port:           port,
-		APIKey:         apiKey,
-		GatewayURL:     gatewayURL,
-		Model:          model,
-		AllowedOrigins: allowedOrigins,
-		DatabaseURL:    dbURL,
-		SMTPHost:       os.Getenv("SMTP_HOST"),
-		SMTPPort:       smtpPort,
-		SMTPUsername:   os.Getenv("SMTP_USERNAME"),
-		SMTPPassword:   os.Getenv("SMTP_PASSWORD"),
-		SMTPFrom:       smtpFrom,
-		GoogleClientID: os.Getenv("GOOGLE_CLIENT_ID"),
+		Port:                  port,
+		APIKey:                apiKey,
+		GatewayURL:            gatewayURL,
+		Model:                 model,
+		AllowedOrigins:        allowedOrigins,
+		DatabaseURL:           dbURL,
+		SMTPHost:              os.Getenv("SMTP_HOST"),
+		SMTPPort:              smtpPort,
+		SMTPUsername:          os.Getenv("SMTP_USERNAME"),
+		SMTPPassword:          os.Getenv("SMTP_PASSWORD"),
+		SMTPFrom:              smtpFrom,
+		GoogleClientID:        os.Getenv("GOOGLE_CLIENT_ID"),
 		NewsletterAdminEmails: os.Getenv("NEWSLETTER_ADMIN_EMAILS"),
+		PublicSiteURL:         publicSiteURL,
+		PublicAPIURL:          publicAPIURL,
 	}
 }

@@ -32,9 +32,10 @@ product recommender.
   manage their preference from their Profile page (`/profile`). The Profile
   stores a short "about" text, interests, saved items, and privacy-first
   settings including account deletion.
-- The protected newsletter admin route supports one preview per UTC week,
-  admin editing, and review confirmation. Email delivery, live news fetching,
-  and automatic scheduling are not enabled.
+- The protected newsletter admin route supports one Money Byte edition per
+  UTC week, source review, and separately confirmed manual SMTP delivery to
+  active subscribers. Unsubscribe links are included. Live news fetching and
+  automatic scheduling are not enabled.
 
 ## Ongoing development priorities
 
