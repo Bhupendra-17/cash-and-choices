@@ -3,10 +3,10 @@ package models
 import "time"
 
 type SignUpRequest struct {
-	Name             string `json:"name"`
-	Email            string `json:"email"`
-	Password         string `json:"password"`
-	NewsletterOptIn  bool   `json:"newsletterOptIn"`
+	Name            string `json:"name"`
+	Email           string `json:"email"`
+	Password        string `json:"password"`
+	NewsletterOptIn bool   `json:"newsletterOptIn"`
 }
 
 type LoginRequest struct {
@@ -15,10 +15,10 @@ type LoginRequest struct {
 }
 
 type GoogleAuthRequest struct {
-	Credential string `json:"credential"` // Google ID token or token payload
-	Email      string `json:"email"`
-	Name       string `json:"name"`
-	NewsletterOptIn bool `json:"newsletterOptIn"`
+	Credential      string `json:"credential"` // Google ID token or token payload
+	Email           string `json:"email"`
+	Name            string `json:"name"`
+	NewsletterOptIn bool   `json:"newsletterOptIn"`
 }
 
 type OTPRequest struct {
@@ -64,6 +64,12 @@ type UserProfile struct {
 	CreatedAt            time.Time             `json:"createdAt"`
 	SavedAnswers         []QuestionAnswer      `json:"savedAnswers"`
 	SavedRecommendations []SavedRecommendation `json:"savedRecommendations"`
+}
+
+type LearningProfile struct {
+	About          string   `json:"about"`
+	Interests      []string `json:"interests"`
+	SavedOptionIDs []string `json:"savedOptionIds"`
 }
 
 type AuthResponse struct {

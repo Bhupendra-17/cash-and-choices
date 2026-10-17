@@ -113,7 +113,7 @@ function PrivacyPage() {
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Button asChild className="rounded-full bg-white text-brand-deep hover:bg-white/95">
-              <Link to="/recommend">Explore financial options</Link>
+              <Link to="/explore">Explore financial options</Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full border-white/40 bg-transparent text-white hover:bg-white/10">
               <Link to="/charges">Explore hidden charges</Link>

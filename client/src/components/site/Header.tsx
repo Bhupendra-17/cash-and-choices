@@ -7,10 +7,10 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const nav = [
-  { to: "/funds", label: "Funds" },
-  { to: "/funds/compare", label: "Compare" },
   { to: "/charges", label: "Learn" },
   { to: "/calculators", label: "Calculators" },
+  { to: "/funds", label: "Funds" },
+  { to: "/funds/compare", label: "Compare" },
 ] as const;
 
 import { useAuth } from "@/lib/auth-context";
@@ -54,7 +54,7 @@ export function Header() {
             </Button>
           )}
           <Button asChild className="rounded-full bg-gradient-brand text-white hover:opacity-95 shadow-glow">
-            <Link to="/recommend">Explore options</Link>
+            <Link to="/explore">Explore options</Link>
           </Button>
         </div>
         <div className="flex items-center gap-2 md:hidden">
@@ -105,7 +105,7 @@ export function Header() {
               </Link>
             )}
             <Button asChild className="mt-2 w-full rounded-full bg-gradient-brand text-white">
-              <Link to="/recommend" onClick={() => setOpen(false)}>
+              <Link to="/explore" onClick={() => setOpen(false)}>
                 Explore options
               </Link>
             </Button>

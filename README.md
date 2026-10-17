@@ -71,6 +71,11 @@ go test ./...
 - `POST /api/funds/explain`: request an AI-generated educational explanation.
 - `POST /api/calculators/tax`: calculate an estimated investment-withdrawal tax
   result.
+- `GET /api/user/learning-profile`: load the signed-in user's about text,
+  interests, and saved learning-option IDs.
+- `PUT /api/user/learning-profile`: save the signed-in user's learning profile.
+- `DELETE /api/auth/me`: permanently delete the signed-in account and
+  account-linked data; requires the confirmation value `DELETE`.
 - `GET /api/newsletter/subscription`: retrieve the signed-in user's newsletter
   preference.
 - `PUT /api/newsletter/subscription`: update the signed-in user's subscription
@@ -81,6 +86,13 @@ go test ./...
   from admin-provided market notes, source URLs, and a learning topic.
 - `POST /api/newsletter/admin/validate`: save the reviewed edition. This does
   not send email.
+
+## Sign-in session storage
+
+After sign-in, the browser stores the bearer token in local storage with a
+30-day expiry. Expired or server-rejected tokens are removed and the user is
+returned to the signed-out state; signing out also clears the stored token and
+expiry. The current implementation uses local storage rather than cookies.
 
 ## Weekly financial-literacy newsletter (preview mode)
 
@@ -110,3 +122,13 @@ automated mailing list campaign.
 
 Before enabling email delivery, add a mailing provider, reliable scheduling,
 unsubscribe handling in delivered messages, and regulatory/legal review.
+
+## Learning profile and account deletion
+
+The profile page stores the user's short about section, selected learning
+interests, and saved educational examples with their account in PostgreSQL (or
+in the server's in-memory fallback when no database is configured). Deleting an
+account removes the learning profile, saved answers, saved items, sessions,
+newsletter preference, OTP, and account-linked analytics/fund interaction
+records. Account deletion is permanent and must be explicitly confirmed in the
+profile settings.

@@ -157,7 +157,7 @@ function LandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button asChild size="lg" className="rounded-full bg-gradient-brand text-white shadow-glow hover:opacity-95">
-                <Link to="/recommend">
+                <Link to="/explore">
                   Explore financial options <ArrowRight className="ml-1 size-4" />
                 </Link>
               </Button>
@@ -220,7 +220,7 @@ function LandingPage() {
               </p>
             </div>
             <Button asChild className="w-fit rounded-full bg-gradient-brand text-white shadow-glow">
-              <Link to="/recommend">Choose a topic to learn <ArrowRight className="ml-1 size-4" /></Link>
+              <Link to="/explore">Choose a topic to learn <ArrowRight className="ml-1 size-4" /></Link>
             </Button>
           </div>
 
@@ -351,14 +351,14 @@ function LandingPage() {
             </p>
           </div>
           <Button asChild variant="ghost" className="w-fit rounded-full">
-            <Link to="/recommend">See all tools <ArrowRight className="ml-1 size-4" /></Link>
+            <Link to="/explore">See all tools <ArrowRight className="ml-1 size-4" /></Link>
           </Button>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {[
             {
-              to: "/recommend",
-              badge: "Questionnaire",
+              to: "/explore",
+              badge: "Learning library",
               title: "Explore financial options",
               body: "Browse common financial products and learn their features and trade-offs.",
               icon: Sparkles,

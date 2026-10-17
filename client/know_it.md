@@ -46,20 +46,29 @@ people can learn what questions to ask and make their own decisions.
 
 ### Weekly learning newsletter
 
-The current newsletter workflow is preview-only:
+The newsletter workflow is preview-and-review only (no automatic mailing by
+default). Each edition contains three short sections to keep content concise and
+useful:
 
-1. An allowlisted admin supplies India-market notes and source URLs.
-2. AI drafts a concise market summary and a short lesson on the admin's chosen
-   topic.
-3. An admin reviews and edits the content, verifies the sources, then marks the
-   edition reviewed.
-4. Each UTC week permits one edition. The preview includes an educational-use
-   footer; it is not emailed to subscribers.
+1. Current India market trends — a very short, sourced summary of notable
+   items relevant to retail investors.
+2. A short educational lesson — a brief primer on a topic such as funds, EMI,
+   taxes, new regimes, hidden charges, or related subjects (written for clarity
+   and non-technical readers).
+3. An educational-purpose footer — a short reminder that content is for
+   educational purposes only and not financial advice.
 
-Users can opt in during sign-up and manage their preference from their account.
-An existing unsubscribe is preserved during sign-in. Do not add email delivery
-or automatic scheduling without implementing appropriate consent, unsubscribe,
-privacy, and legal requirements.
+Key notes:
+
+- Admins create a draft by supplying market notes and source URLs; an AI draft
+  may be produced from those sources to speed authoring. The admin must review
+  and validate the draft before it is marked reviewed.
+- Only one edition is allowed per UTC week; the admin preview page shows the
+  current week's draft and the subscriber count (preview-only during testing).
+- Users are auto-subscribed on first sign-up/login unless they previously
+  opted out; they can manage their subscription from their Profile page.
+- Do not enable automated sending or scheduling without explicit consent,
+  unsubscribe handling, privacy/retention policies, and legal/regulatory review.
 
 ## Interface requirements
 

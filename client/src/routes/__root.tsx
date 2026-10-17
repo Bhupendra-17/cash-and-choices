@@ -82,11 +82,31 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Cash&Choices — Smarter financial decisions. Privately." },
       { property: "og:title", content: "Cash&Choices — Smarter financial decisions. Privately." },
       { name: "twitter:title", content: "Cash&Choices — Smarter financial decisions. Privately." },
-      { name: "description", content: "Questionnaires, calculators and honest comparisons no bank login, no PAN, no financial secrets. Privacy is the feature without any commissions from third-party." },
-      { property: "og:description", content: "Questionnaires, calculators and honest comparisons no bank login, no PAN, no financial secrets. Privacy is the feature without any commissions from third-party." },
-      { name: "twitter:description", content: "Questionnaires, calculators and honest comparisons no bank login, no PAN, no financial secrets. Privacy is the feature without any commissions from third-party." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/dc55f2eb-8bc7-4191-a48f-7c5e6120a38d" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/dc55f2eb-8bc7-4191-a48f-7c5e6120a38d" },
+      {
+        name: "description",
+        content:
+          "Questionnaires, calculators and honest comparisons no bank login, no PAN, no financial secrets. Privacy is the feature without any commissions from third-party.",
+      },
+      {
+        property: "og:description",
+        content:
+          "Questionnaires, calculators and honest comparisons no bank login, no PAN, no financial secrets. Privacy is the feature without any commissions from third-party.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Questionnaires, calculators and honest comparisons no bank login, no PAN, no financial secrets. Privacy is the feature without any commissions from third-party.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/dc55f2eb-8bc7-4191-a48f-7c5e6120a38d",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/dc55f2eb-8bc7-4191-a48f-7c5e6120a38d",
+      },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],
@@ -108,7 +128,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />

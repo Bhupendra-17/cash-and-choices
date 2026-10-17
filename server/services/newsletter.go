@@ -23,28 +23,28 @@ type NewsletterContent struct {
 }
 
 type NewsletterEdition struct {
-	ID        string    `json:"id"`
-	WeekStart string    `json:"weekStart"`
-	Status    string    `json:"status"`
+	ID        string `json:"id"`
+	WeekStart string `json:"weekStart"`
+	Status    string `json:"status"`
 	NewsletterContent
 	CreatedAt   time.Time  `json:"createdAt"`
 	ValidatedAt *time.Time `json:"validatedAt,omitempty"`
 }
 
 type NewsletterSubscription struct {
-	Email        string     `json:"email"`
-	Subscribed   bool       `json:"subscribed"`
-	Source       string     `json:"source"`
-	ConsentedAt  *time.Time `json:"consentedAt,omitempty"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
+	Email       string     `json:"email"`
+	Subscribed  bool       `json:"subscribed"`
+	Source      string     `json:"source"`
+	ConsentedAt *time.Time `json:"consentedAt,omitempty"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
 }
 
 type NewsletterService struct {
-	db         *sql.DB
-	admins     map[string]struct{}
-	mu         sync.RWMutex
-	subs       map[string]NewsletterSubscription
-	editions   map[string]NewsletterEdition
+	db       *sql.DB
+	admins   map[string]struct{}
+	mu       sync.RWMutex
+	subs     map[string]NewsletterSubscription
+	editions map[string]NewsletterEdition
 }
 
 func NewNewsletterService(database *sql.DB, adminEmails string) *NewsletterService {
@@ -206,6 +206,21 @@ func (s *NewsletterService) GetSubscription(email string) (NewsletterSubscriptio
 		return subscription, nil
 	}
 	return NewsletterSubscription{Email: email, Subscribed: false}, nil
+}
+
+func (s *NewsletterService) DeleteSubscription(email string) error {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if s.db != nil {
+		if _, err := s.db.Exec("DELETE FROM newsletter_subscriptions WHERE email = $1", email); err != nil {
+			return fmt.Errorf("failed to delete newsletter subscription: %w", err)
+		}
+		return nil
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.subs, email)
+	return nil
 }
 
 func (s *NewsletterService) SubscriberCount() (int, error) {

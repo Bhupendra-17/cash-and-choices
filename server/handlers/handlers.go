@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -34,12 +35,12 @@ func NewAPIHandler(
 	newsletter *services.NewsletterService,
 ) *APIHandler {
 	return &APIHandler{
-		mfService:        mf,
-		aiService:        ai,
-		calcService:      calc,
-		authService:      auth,
-		analyticsService: analytics,
-		featuredService:  featured,
+		mfService:         mf,
+		aiService:         ai,
+		calcService:       calc,
+		authService:       auth,
+		analyticsService:  analytics,
+		featuredService:   featured,
 		newsletterService: newsletter,
 	}
 }
@@ -353,7 +354,7 @@ The lesson explains general concepts, not what the reader should buy, sell, hold
 Return only JSON with string fields: subject (<=90 characters), preheader (<=130), marketSummary (<=500), lessonTitle (<=100), lessonBody (<=700).`,
 		},
 		{
-			Role: "user",
+			Role:    "user",
 			Content: fmt.Sprintf("Verified India market news notes and source URLs:\n%s\n\nEducational lesson topic for this edition:\n%s", req.MarketSources, req.LessonTopic),
 		},
 	}
@@ -527,6 +528,77 @@ func (h *APIHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, user)
+}
+
+// GET /api/user/learning-profile
+func (h *APIHandler) GetLearningProfile(w http.ResponseWriter, r *http.Request) {
+	profile, err := h.authService.GetLearningProfile(r.Header.Get("Authorization"))
+	if err != nil {
+		if errors.Is(err, services.ErrInvalidAuthToken) {
+			respondError(w, http.StatusUnauthorized, err.Error())
+		} else {
+			respondError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+	respondJSON(w, http.StatusOK, profile)
+}
+
+// PUT /api/user/learning-profile
+func (h *APIHandler) SaveLearningProfile(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 16*1024)
+	var profile models.LearningProfile
+	if err := json.NewDecoder(r.Body).Decode(&profile); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid learning profile payload")
+		return
+	}
+	if err := h.authService.SaveLearningProfile(r.Header.Get("Authorization"), profile); err != nil {
+		status := http.StatusInternalServerError
+		switch {
+		case errors.Is(err, services.ErrInvalidAuthToken):
+			status = http.StatusUnauthorized
+		case errors.Is(err, services.ErrInvalidLearningProfile):
+			status = http.StatusBadRequest
+		}
+		respondError(w, status, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, profile)
+}
+
+// DELETE /api/auth/me
+func (h *APIHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Confirmation string `json:"confirmation"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid json payload")
+		return
+	}
+	if req.Confirmation != "DELETE" {
+		respondError(w, http.StatusBadRequest, `type "DELETE" to confirm account deletion`)
+		return
+	}
+	user, err := h.authService.GetUserByToken(r.Header.Get("Authorization"))
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if err := h.authService.DeleteAccount(r.Header.Get("Authorization")); err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, services.ErrInvalidAuthToken) {
+			status = http.StatusUnauthorized
+		}
+		respondError(w, status, err.Error())
+		return
+	}
+	if h.newsletterService != nil && !h.authService.UsesDatabase() {
+		if err := h.newsletterService.DeleteSubscription(user.Email); err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	respondJSON(w, http.StatusOK, map[string]string{"message": "Account and associated data deleted."})
 }
 
 // POST /api/user/recommendations

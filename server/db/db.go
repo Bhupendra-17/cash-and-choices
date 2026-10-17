@@ -75,6 +75,14 @@ func migrateSchemas(db *sql.DB) error {
 		created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);
 
+	CREATE TABLE IF NOT EXISTS user_learning_profiles (
+		email VARCHAR(255) PRIMARY KEY REFERENCES users(email) ON DELETE CASCADE,
+		about VARCHAR(240) NOT NULL DEFAULT '',
+		interests_json TEXT NOT NULL DEFAULT '[]',
+		saved_option_ids_json TEXT NOT NULL DEFAULT '[]',
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+	);
+
 	CREATE TABLE IF NOT EXISTS otps (
 		email VARCHAR(255) PRIMARY KEY,
 		otp VARCHAR(16) NOT NULL,

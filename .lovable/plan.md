@@ -23,11 +23,15 @@ product recommender.
 
 - Homepage positions the service as a financial-literacy platform.
 - Product exploration uses educational examples rather than personalized
-  recommendations.
+  recommendations. The interactive Explore page is available at `/explore` and
+  presents clickable card-style educational content (what it is, how it works,
+  benefits, considerations) without scores or rankings.
 - Product comparison focuses on factual attributes, concepts, costs, and
   trade-offs instead of scores or rankings.
-- Account sign-up offers an explicit newsletter preference, and users can
-  manage their preference from their account.
+- Account sign-up offers an explicit newsletter preference and users can
+  manage their preference from their Profile page (`/profile`). The Profile
+  stores a short "about" text, interests, saved items, and privacy-first
+  settings including account deletion.
 - The protected newsletter admin route supports one preview per UTC week,
   admin editing, and review confirmation. Email delivery, live news fetching,
   and automatic scheduling are not enabled.

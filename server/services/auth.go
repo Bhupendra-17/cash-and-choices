@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -15,6 +16,9 @@ import (
 
 	"cash-choices-server/models"
 )
+
+var ErrInvalidAuthToken = errors.New("unauthorized or invalid token")
+var ErrInvalidLearningProfile = errors.New("invalid learning profile")
 
 type UserInternal struct {
 	ID                   string
@@ -33,12 +37,13 @@ type OTPRecord struct {
 }
 
 type AuthService struct {
-	mu           sync.RWMutex
-	db           *sql.DB
-	emailService *EmailService
-	users        map[string]*UserInternal // in-memory fallback
-	tokens       map[string]string        // in-memory fallback
-	otps         map[string]OTPRecord     // in-memory fallback
+	mu               sync.RWMutex
+	db               *sql.DB
+	emailService     *EmailService
+	users            map[string]*UserInternal // in-memory fallback
+	tokens           map[string]string        // in-memory fallback
+	otps             map[string]OTPRecord     // in-memory fallback
+	learningProfiles map[string]models.LearningProfile
 }
 
 func parseGoogleIDToken(credential string) (email string, name string) {
@@ -73,11 +78,12 @@ func parseGoogleIDToken(credential string) (email string, name string) {
 
 func NewAuthService(database *sql.DB, emailService *EmailService) *AuthService {
 	s := &AuthService{
-		db:           database,
-		emailService: emailService,
-		users:        make(map[string]*UserInternal),
-		tokens:       make(map[string]string),
-		otps:         make(map[string]OTPRecord),
+		db:               database,
+		emailService:     emailService,
+		users:            make(map[string]*UserInternal),
+		tokens:           make(map[string]string),
+		otps:             make(map[string]OTPRecord),
+		learningProfiles: make(map[string]models.LearningProfile),
 	}
 
 	// Seed demo account in memory fallback
@@ -120,6 +126,10 @@ func NewAuthService(database *sql.DB, emailService *EmailService) *AuthService {
 	s.tokens["token_demo_ananya"] = demoUser.Email
 
 	return s
+}
+
+func (s *AuthService) UsesDatabase() bool {
+	return s.db != nil
 }
 
 func generateRandomToken() string {
@@ -374,7 +384,7 @@ func (s *AuthService) GetUserByToken(tokenHeader string) (*models.UserProfile, e
 		var email string
 		err := s.db.QueryRow("SELECT email FROM user_tokens WHERE token = $1", token).Scan(&email)
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("unauthorized or invalid token")
+			return nil, ErrInvalidAuthToken
 		} else if err != nil {
 			return nil, fmt.Errorf("database query error: %w", err)
 		}
@@ -395,7 +405,7 @@ func (s *AuthService) GetUserByToken(tokenHeader string) (*models.UserProfile, e
 
 	email, exists := s.tokens[token]
 	if !exists {
-		return nil, fmt.Errorf("unauthorized or invalid token")
+		return nil, ErrInvalidAuthToken
 	}
 
 	user, exists := s.users[email]
@@ -681,4 +691,194 @@ func (s *AuthService) fetchFullUserProfile(email string, u *UserInternal) (*mode
 
 	profile := s.toProfile(u)
 	return &profile, nil
+}
+
+func (s *AuthService) DeleteAccount(tokenHeader string) error {
+	token := strings.TrimSpace(strings.TrimPrefix(tokenHeader, "Bearer "))
+	if token == "" {
+		return ErrInvalidAuthToken
+	}
+
+	if s.db != nil {
+		tx, err := s.db.Begin()
+		if err != nil {
+			return fmt.Errorf("could not start account deletion: %w", err)
+		}
+		defer tx.Rollback()
+
+		var email string
+		if err := tx.QueryRow("SELECT email FROM user_tokens WHERE token = $1", token).Scan(&email); err != nil {
+			if err == sql.ErrNoRows {
+				return ErrInvalidAuthToken
+			}
+			return fmt.Errorf("could not verify account session: %w", err)
+		}
+
+		for _, query := range []string{
+			"DELETE FROM newsletter_subscriptions WHERE email = $1",
+			"DELETE FROM user_analytics_events WHERE user_email = $1",
+			"DELETE FROM user_fund_interactions WHERE user_email = $1",
+			"DELETE FROM otps WHERE email = $1",
+			"DELETE FROM users WHERE email = $1",
+		} {
+			if _, err := tx.Exec(query, email); err != nil {
+				return fmt.Errorf("could not remove account data: %w", err)
+			}
+		}
+
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("could not complete account deletion: %w", err)
+		}
+		return nil
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	email, exists := s.tokens[token]
+	if !exists {
+		return ErrInvalidAuthToken
+	}
+	if _, exists := s.users[email]; !exists {
+		return fmt.Errorf("user not found")
+	}
+
+	delete(s.users, email)
+	delete(s.learningProfiles, email)
+	for activeToken, tokenEmail := range s.tokens {
+		if tokenEmail == email {
+			delete(s.tokens, activeToken)
+		}
+	}
+	delete(s.otps, email)
+	return nil
+}
+
+func decodeLearningProfileList(value, field string) []string {
+	var items []string
+	if err := json.Unmarshal([]byte(value), &items); err != nil {
+		log.Printf("invalid stored learning profile %s; using an empty list: %v", field, err)
+		return []string{}
+	}
+	if items == nil {
+		return []string{}
+	}
+	return items
+}
+
+func (s *AuthService) GetLearningProfile(tokenHeader string) (models.LearningProfile, error) {
+	user, err := s.GetUserByToken(tokenHeader)
+	if err != nil {
+		return models.LearningProfile{}, err
+	}
+	if s.db != nil {
+		var about, interestsJSON, savedOptionsJSON string
+		err := s.db.QueryRow(
+			"SELECT about, interests_json, saved_option_ids_json FROM user_learning_profiles WHERE email = $1",
+			user.Email,
+		).Scan(&about, &interestsJSON, &savedOptionsJSON)
+		if err == sql.ErrNoRows {
+			return models.LearningProfile{Interests: []string{}, SavedOptionIDs: []string{}}, nil
+		}
+		if err != nil {
+			return models.LearningProfile{}, fmt.Errorf("could not load learning profile: %w", err)
+		}
+		profile := models.LearningProfile{About: about}
+		profile.Interests = decodeLearningProfileList(interestsJSON, "interests")
+		profile.SavedOptionIDs = decodeLearningProfileList(savedOptionsJSON, "saved items")
+		return profile, nil
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	profile := s.learningProfiles[user.Email]
+	if profile.Interests == nil {
+		profile.Interests = []string{}
+	}
+	if profile.SavedOptionIDs == nil {
+		profile.SavedOptionIDs = []string{}
+	}
+	return profile, nil
+}
+
+func (s *AuthService) SaveLearningProfile(tokenHeader string, profile models.LearningProfile) error {
+	user, err := s.GetUserByToken(tokenHeader)
+	if err != nil {
+		return err
+	}
+	if len([]rune(profile.About)) > 240 {
+		return fmt.Errorf("%w: about section must be 240 characters or fewer", ErrInvalidLearningProfile)
+	}
+	if len(profile.Interests) > 9 {
+		return fmt.Errorf("%w: choose no more than 9 learning interests", ErrInvalidLearningProfile)
+	}
+	validInterests := map[string]bool{
+		"credit_card": true, "mutual_fund": true, "insurance": true,
+		"loan": true, "platform": true, "savings": true, "fd": true,
+		"gold": true, "retirement": true,
+	}
+	interestSet := make(map[string]bool, len(profile.Interests))
+	for _, interest := range profile.Interests {
+		if !validInterests[interest] {
+			return fmt.Errorf("%w: invalid learning interest", ErrInvalidLearningProfile)
+		}
+		if interestSet[interest] {
+			return fmt.Errorf("%w: learning interests must be unique", ErrInvalidLearningProfile)
+		}
+		interestSet[interest] = true
+	}
+	if len(profile.SavedOptionIDs) > 100 {
+		return fmt.Errorf("%w: you can save up to 100 learning options", ErrInvalidLearningProfile)
+	}
+	optionSet := make(map[string]bool, len(profile.SavedOptionIDs))
+	for _, optionID := range profile.SavedOptionIDs {
+		if optionID == "" || len(optionID) > 64 {
+			return fmt.Errorf("%w: invalid saved learning option", ErrInvalidLearningProfile)
+		}
+		for _, char := range optionID {
+			if !(char >= 'a' && char <= 'z') && !(char >= '0' && char <= '9') && char != '-' && char != '_' {
+				return fmt.Errorf("%w: invalid saved learning option", ErrInvalidLearningProfile)
+			}
+		}
+		if optionSet[optionID] {
+			return fmt.Errorf("%w: saved learning options must be unique", ErrInvalidLearningProfile)
+		}
+		optionSet[optionID] = true
+	}
+	profile.About = strings.TrimSpace(profile.About)
+	if profile.Interests == nil {
+		profile.Interests = []string{}
+	}
+	if profile.SavedOptionIDs == nil {
+		profile.SavedOptionIDs = []string{}
+	}
+
+	if s.db != nil {
+		interestsJSON, err := json.Marshal(profile.Interests)
+		if err != nil {
+			return fmt.Errorf("could not encode learning interests: %w", err)
+		}
+		savedOptionsJSON, err := json.Marshal(profile.SavedOptionIDs)
+		if err != nil {
+			return fmt.Errorf("could not encode saved learning items: %w", err)
+		}
+		_, err = s.db.Exec(`
+			INSERT INTO user_learning_profiles (email, about, interests_json, saved_option_ids_json, updated_at)
+			VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+			ON CONFLICT (email) DO UPDATE SET
+				about = EXCLUDED.about,
+				interests_json = EXCLUDED.interests_json,
+				saved_option_ids_json = EXCLUDED.saved_option_ids_json,
+				updated_at = CURRENT_TIMESTAMP`,
+			user.Email, profile.About, string(interestsJSON), string(savedOptionsJSON))
+		if err != nil {
+			return fmt.Errorf("could not save learning profile: %w", err)
+		}
+		return nil
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.learningProfiles[user.Email] = profile
+	return nil
 }

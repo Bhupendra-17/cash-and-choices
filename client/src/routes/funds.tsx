@@ -144,7 +144,7 @@ function FundsPage() {
                 <h2 className="mt-1.5 text-lg sm:text-xl font-bold">Examples from the fund list</h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">Shown alphabetically as examples to explore—not recommendations.</p>
               </div>
-              <Link to="/recommend" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-deep hover:underline shrink-0">
+              <Link to="/explore" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-deep hover:underline shrink-0">
                 Learn about options <ArrowRight className="size-3.5" />
               </Link>
             </div>
