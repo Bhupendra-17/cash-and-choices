@@ -44,7 +44,7 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { user, token, logout, deleteAccount } = useAuth();
+  const { user, token, isLoading, refreshSession, logout, deleteAccount } = useAuth();
   const navigate = useNavigate();
   const [learningProfile, setLearningProfile] = useState(EMPTY_LEARNING_PROFILE);
   const [aboutDraft, setAboutDraft] = useState("");
@@ -59,9 +59,24 @@ function ProfilePage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [validatedSessionToken, setValidatedSessionToken] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || isLoading) {
+      setValidatedSessionToken(null);
+      return;
+    }
+    let active = true;
+    refreshSession().then((validatedUser) => {
+      if (active) setValidatedSessionToken(validatedUser ? token : null);
+    });
+    return () => {
+      active = false;
+    };
+  }, [isLoading, refreshSession, token]);
+
+  useEffect(() => {
+    if (!token || validatedSessionToken !== token) return;
     let active = true;
     getLearningProfile(token)
       .then((profile) => {
@@ -83,10 +98,10 @@ function ProfilePage() {
     return () => {
       active = false;
     };
-  }, [logout, token]);
+  }, [logout, token, validatedSessionToken]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || validatedSessionToken !== token) return;
     apiFetch("/api/newsletter/subscription", {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -107,7 +122,7 @@ function ProfilePage() {
           error instanceof Error ? error.message : "Could not load newsletter preferences.",
         );
       });
-  }, [logout, token]);
+  }, [logout, token, validatedSessionToken]);
 
   const savedOptions = useMemo(
     () => PRODUCTS.filter((product) => learningProfile.savedOptionIds.includes(product.id)),

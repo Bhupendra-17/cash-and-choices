@@ -93,6 +93,8 @@ function AuthPage() {
         setGoogleError(null);
         setGoogleRetryable(false);
         try {
+          if (!idToken) throw new Error("Google did not return an ID token.");
+
           let email = "";
           let name = "";
 
@@ -116,7 +118,7 @@ function AuthPage() {
           }
 
           await googleLogin({
-            credential: idToken || accessToken || "",
+            credential: idToken,
             email,
             name,
             newsletterOptIn: sessionStorage.getItem("cash_choices_newsletter_opt_in") !== "false",
@@ -126,9 +128,23 @@ function AuthPage() {
           // Clean URL parameters from browser address bar
           window.history.replaceState(null, "", window.location.pathname);
           navigate({ to: "/profile" });
-        } catch {
+        } catch (err) {
           window.history.replaceState(null, "", window.location.pathname);
-          setGoogleError("Google sign-in failed. Please try again.");
+          const message = err instanceof Error ? err.message : "";
+          if (message === "Google sign-in is not configured") {
+            setGoogleError(
+              "Google sign-in is not configured on the server. Check that GOOGLE_CLIENT_ID matches VITE_GOOGLE_CLIENT_ID.",
+            );
+          } else if (
+            message === "Google sign-in credential is invalid or expired" ||
+            message === "Google sign-in credential is missing"
+          ) {
+            setGoogleError(
+              "Google couldn't verify this sign-in. Please try again. If it keeps happening, check that GOOGLE_CLIENT_ID matches VITE_GOOGLE_CLIENT_ID.",
+            );
+          } else {
+            setGoogleError("Google sign-in failed. Please try again.");
+          }
           setGoogleRetryable(true);
         } finally {
           setLoading(false);

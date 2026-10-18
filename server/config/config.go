@@ -19,6 +19,7 @@ type Config struct {
 	SMTPPassword          string
 	SMTPFrom              string
 	GoogleClientID        string
+	JWTSecret             string
 	NewsletterAdminEmails string
 	PublicSiteURL         string
 	PublicAPIURL          string
@@ -97,6 +98,19 @@ func LoadConfig() *Config {
 		dbURL = os.Getenv("POSTGRES_URL")
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+	production := strings.EqualFold(os.Getenv("NODE_ENV"), "production") ||
+		strings.EqualFold(os.Getenv("GO_ENV"), "production") ||
+		os.Getenv("VERCEL") != "" ||
+		os.Getenv("RAILWAY_ENVIRONMENT") != "" ||
+		os.Getenv("RENDER") != "" ||
+		os.Getenv("FLY_APP_NAME") != "" ||
+		os.Getenv("K_SERVICE") != "" ||
+		os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != ""
+	if jwtSecret == "" && !production {
+		jwtSecret = "local-development-only-change-before-deploying"
+	}
+
 	smtpPort := os.Getenv("SMTP_PORT")
 	if smtpPort == "" {
 		smtpPort = "587"
@@ -126,6 +140,7 @@ func LoadConfig() *Config {
 		SMTPPassword:          os.Getenv("SMTP_PASSWORD"),
 		SMTPFrom:              smtpFrom,
 		GoogleClientID:        os.Getenv("GOOGLE_CLIENT_ID"),
+		JWTSecret:             jwtSecret,
 		NewsletterAdminEmails: os.Getenv("NEWSLETTER_ADMIN_EMAILS"),
 		PublicSiteURL:         publicSiteURL,
 		PublicAPIURL:          publicAPIURL,

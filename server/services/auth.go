@@ -2,23 +2,32 @@ package services
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"database/sql"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"math/big"
+	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 
 	"cash-choices-server/models"
 )
 
 var ErrInvalidAuthToken = errors.New("unauthorized or invalid token")
 var ErrInvalidLearningProfile = errors.New("invalid learning profile")
+
+const authTokenLifetime = 30 * 24 * time.Hour
 
 type UserInternal struct {
 	ID                   string
@@ -40,48 +49,27 @@ type AuthService struct {
 	mu               sync.RWMutex
 	db               *sql.DB
 	emailService     *EmailService
+	jwtSecret        []byte
+	googleClientID   string
+	googleHTTPClient *http.Client
+	googleTokenInfo  string
 	users            map[string]*UserInternal // in-memory fallback
-	tokens           map[string]string        // in-memory fallback
 	otps             map[string]OTPRecord     // in-memory fallback
 	learningProfiles map[string]models.LearningProfile
 }
 
-func parseGoogleIDToken(credential string) (email string, name string) {
-	parts := strings.Split(credential, ".")
-	if len(parts) < 2 {
-		return "", ""
+func NewAuthService(database *sql.DB, emailService *EmailService, jwtSecret, googleClientID string) (*AuthService, error) {
+	if len(jwtSecret) < 32 {
+		return nil, fmt.Errorf("JWT_SECRET must contain at least 32 characters")
 	}
-	payloadSegment := parts[1]
-	// Fix base64 padding
-	switch len(payloadSegment) % 4 {
-	case 2:
-		payloadSegment += "=="
-	case 3:
-		payloadSegment += "="
-	}
-	payloadBytes, err := base64.URLEncoding.DecodeString(payloadSegment)
-	if err != nil {
-		payloadBytes, err = base64.RawURLEncoding.DecodeString(parts[1])
-		if err != nil {
-			return "", ""
-		}
-	}
-	var claims struct {
-		Email string `json:"email"`
-		Name  string `json:"name"`
-	}
-	if err := json.Unmarshal(payloadBytes, &claims); err == nil {
-		return claims.Email, claims.Name
-	}
-	return "", ""
-}
-
-func NewAuthService(database *sql.DB, emailService *EmailService) *AuthService {
 	s := &AuthService{
 		db:               database,
 		emailService:     emailService,
+		jwtSecret:        []byte(jwtSecret),
+		googleClientID:   strings.TrimSpace(googleClientID),
+		googleHTTPClient: &http.Client{Timeout: 5 * time.Second},
+		googleTokenInfo:  "https://oauth2.googleapis.com/tokeninfo",
 		users:            make(map[string]*UserInternal),
-		tokens:           make(map[string]string),
 		otps:             make(map[string]OTPRecord),
 		learningProfiles: make(map[string]models.LearningProfile),
 	}
@@ -123,9 +111,123 @@ func NewAuthService(database *sql.DB, emailService *EmailService) *AuthService {
 		},
 	}
 	s.users[demoUser.Email] = demoUser
-	s.tokens["token_demo_ananya"] = demoUser.Email
 
-	return s
+	return s, nil
+}
+
+func (s *AuthService) issueToken(userID string) (string, error) {
+	now := time.Now()
+	claims := jwt.RegisteredClaims{
+		Issuer:    "cash-choices",
+		Subject:   userID,
+		IssuedAt:  jwt.NewNumericDate(now),
+		NotBefore: jwt.NewNumericDate(now),
+		ExpiresAt: jwt.NewNumericDate(now.Add(authTokenLifetime)),
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.jwtSecret)
+}
+
+func (s *AuthService) tokenUserID(tokenHeader string) (string, error) {
+	token := strings.TrimSpace(strings.TrimPrefix(tokenHeader, "Bearer "))
+	if token == "" {
+		return "", ErrInvalidAuthToken
+	}
+	claims := &jwt.RegisteredClaims{}
+	parsed, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (any, error) {
+		if token.Method != jwt.SigningMethodHS256 {
+			return nil, ErrInvalidAuthToken
+		}
+		return s.jwtSecret, nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithIssuer("cash-choices"), jwt.WithExpirationRequired())
+	if err != nil || !parsed.Valid || claims.Subject == "" {
+		return "", ErrInvalidAuthToken
+	}
+	return claims.Subject, nil
+}
+
+func (s *AuthService) emailForToken(tokenHeader string) (string, error) {
+	userID, err := s.tokenUserID(tokenHeader)
+	if err != nil {
+		return "", err
+	}
+	if s.db != nil {
+		var email string
+		err := s.db.QueryRow("SELECT email FROM users WHERE id = $1", userID).Scan(&email)
+		if err == sql.ErrNoRows {
+			return "", ErrInvalidAuthToken
+		}
+		if err != nil {
+			return "", fmt.Errorf("could not load authenticated account: %w", err)
+		}
+		return email, nil
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for email, user := range s.users {
+		if user.ID == userID {
+			return email, nil
+		}
+	}
+	return "", ErrInvalidAuthToken
+}
+
+func (s *AuthService) verifyGoogleIDToken(credential string) (string, string, error) {
+	if strings.TrimSpace(credential) == "" {
+		return "", "", fmt.Errorf("Google sign-in credential is missing")
+	}
+	if s.googleClientID == "" {
+		return "", "", fmt.Errorf("Google sign-in is not configured")
+	}
+	query := url.Values{"id_token": {credential}}
+	request, err := http.NewRequest(
+		http.MethodGet,
+		s.googleTokenInfo+"?"+query.Encode(),
+		nil,
+	)
+	if err != nil {
+		return "", "", fmt.Errorf("could not create Google token verification request: %w", err)
+	}
+	response, err := s.googleHTTPClient.Do(request)
+	if err != nil {
+		return "", "", fmt.Errorf("could not verify Google sign-in: %w", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("Google rejected the sign-in credential")
+	}
+	var claims struct {
+		Audience      string          `json:"aud"`
+		Issuer        string          `json:"iss"`
+		ExpiresAt     json.RawMessage `json:"exp"`
+		Email         string          `json:"email"`
+		EmailVerified json.RawMessage `json:"email_verified"`
+		Name          string          `json:"name"`
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 16*1024)).Decode(&claims); err != nil {
+		return "", "", fmt.Errorf("could not read Google identity claims: %w", err)
+	}
+	var expiry int64
+	err = json.Unmarshal(claims.ExpiresAt, &expiry)
+	if err != nil {
+		var stringValue string
+		if stringErr := json.Unmarshal(claims.ExpiresAt, &stringValue); stringErr == nil {
+			expiry, err = strconv.ParseInt(stringValue, 10, 64)
+		}
+	}
+	var emailVerified bool
+	if err := json.Unmarshal(claims.EmailVerified, &emailVerified); err != nil {
+		var stringValue string
+		if stringErr := json.Unmarshal(claims.EmailVerified, &stringValue); stringErr == nil {
+			emailVerified = stringValue == "true"
+		}
+	}
+	if err != nil || claims.Audience != s.googleClientID ||
+		(claims.Issuer != "accounts.google.com" && claims.Issuer != "https://accounts.google.com") ||
+		expiry <= time.Now().Unix() || !emailVerified || claims.Email == "" {
+		return "", "", fmt.Errorf("Google sign-in credential is invalid or expired")
+	}
+	return strings.ToLower(strings.TrimSpace(claims.Email)), strings.TrimSpace(claims.Name), nil
 }
 
 func (s *AuthService) UsesDatabase() bool {
@@ -155,11 +257,30 @@ func (s *AuthService) toProfile(u *UserInternal) models.UserProfile {
 	}
 }
 
+func hashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("could not secure password: %w", err)
+	}
+	return string(hash), nil
+}
+
+func verifyPassword(stored, supplied string) (bool, bool) {
+	if strings.HasPrefix(stored, "$2a$") || strings.HasPrefix(stored, "$2b$") || strings.HasPrefix(stored, "$2y$") {
+		return bcrypt.CompareHashAndPassword([]byte(stored), []byte(supplied)) == nil, false
+	}
+	return subtle.ConstantTimeCompare([]byte(stored), []byte(supplied)) == 1, true
+}
+
 func (s *AuthService) SignUp(req models.SignUpRequest) (*models.AuthResponse, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	name := strings.TrimSpace(req.Name)
 	if email == "" || req.Password == "" || name == "" {
 		return nil, fmt.Errorf("name, email and password are required")
+	}
+	passwordHash, err := hashPassword(req.Password)
+	if err != nil {
+		return nil, err
 	}
 
 	if s.db != nil {
@@ -175,22 +296,21 @@ func (s *AuthService) SignUp(req models.SignUpRequest) (*models.AuthResponse, er
 		userID := fmt.Sprintf("usr_%s", generateRandomToken()[:10])
 		now := time.Now()
 		_, err = s.db.Exec("INSERT INTO users (id, name, email, password, provider, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
-			userID, name, email, req.Password, "email", now)
+			userID, name, email, passwordHash, "email", now)
 		if err != nil {
 			return nil, fmt.Errorf("failed to insert user into database: %w", err)
 		}
 
-		token := fmt.Sprintf("token_%s", generateRandomToken())
-		_, err = s.db.Exec("INSERT INTO user_tokens (token, email, created_at) VALUES ($1, $2, $3)", token, email, now)
+		token, err := s.issueToken(userID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create session token: %w", err)
+			return nil, fmt.Errorf("failed to issue authentication token: %w", err)
 		}
 
 		userInternal := &UserInternal{
 			ID:                   userID,
 			Name:                 name,
 			Email:                email,
-			Password:             req.Password,
+			Password:             passwordHash,
 			Provider:             "email",
 			CreatedAt:            now,
 			SavedAnswers:         []models.QuestionAnswer{},
@@ -215,7 +335,7 @@ func (s *AuthService) SignUp(req models.SignUpRequest) (*models.AuthResponse, er
 		ID:                   fmt.Sprintf("usr_%s", generateRandomToken()[:10]),
 		Name:                 name,
 		Email:                email,
-		Password:             req.Password,
+		Password:             passwordHash,
 		Provider:             "email",
 		CreatedAt:            time.Now(),
 		SavedAnswers:         []models.QuestionAnswer{},
@@ -223,8 +343,10 @@ func (s *AuthService) SignUp(req models.SignUpRequest) (*models.AuthResponse, er
 	}
 	s.users[email] = u
 
-	token := fmt.Sprintf("token_%s", generateRandomToken())
-	s.tokens[token] = email
+	token, err := s.issueToken(u.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to issue authentication token: %w", err)
+	}
 
 	return &models.AuthResponse{
 		Token: token,
@@ -248,14 +370,23 @@ func (s *AuthService) Login(req models.LoginRequest) (*models.AuthResponse, erro
 			return nil, fmt.Errorf("database query error: %w", err)
 		}
 
-		if u.Password != req.Password {
+		passwordMatches, legacyPassword := verifyPassword(u.Password, req.Password)
+		if !passwordMatches {
 			return nil, fmt.Errorf("invalid email or password")
 		}
+		if legacyPassword {
+			u.Password, err = hashPassword(req.Password)
+			if err != nil {
+				return nil, err
+			}
+			if _, err := s.db.Exec("UPDATE users SET password = $1 WHERE email = $2", u.Password, email); err != nil {
+				return nil, fmt.Errorf("could not upgrade stored password: %w", err)
+			}
+		}
 
-		token := fmt.Sprintf("token_%s", generateRandomToken())
-		_, err = s.db.Exec("INSERT INTO user_tokens (token, email, created_at) VALUES ($1, $2, $3)", token, email, time.Now())
+		token, err := s.issueToken(u.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create session token: %w", err)
+			return nil, fmt.Errorf("failed to issue authentication token: %w", err)
 		}
 
 		fullProfile, err := s.fetchFullUserProfile(email, &u)
@@ -274,12 +405,25 @@ func (s *AuthService) Login(req models.LoginRequest) (*models.AuthResponse, erro
 	defer s.mu.Unlock()
 
 	u, exists := s.users[email]
-	if !exists || u.Password != req.Password {
+	if !exists {
 		return nil, fmt.Errorf("invalid email or password")
 	}
+	passwordMatches, legacyPassword := verifyPassword(u.Password, req.Password)
+	if !passwordMatches {
+		return nil, fmt.Errorf("invalid email or password")
+	}
+	if legacyPassword {
+		passwordHash, hashErr := hashPassword(req.Password)
+		if hashErr != nil {
+			return nil, hashErr
+		}
+		u.Password = passwordHash
+	}
 
-	token := fmt.Sprintf("token_%s", generateRandomToken())
-	s.tokens[token] = email
+	token, err := s.issueToken(u.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to issue authentication token: %w", err)
+	}
 
 	return &models.AuthResponse{
 		Token: token,
@@ -288,21 +432,12 @@ func (s *AuthService) Login(req models.LoginRequest) (*models.AuthResponse, erro
 }
 
 func (s *AuthService) GoogleAuth(req models.GoogleAuthRequest) (*models.AuthResponse, error) {
-	email := strings.ToLower(strings.TrimSpace(req.Email))
-	name := strings.TrimSpace(req.Name)
-
-	if req.Credential != "" && (email == "" || name == "") {
-		parsedEmail, parsedName := parseGoogleIDToken(req.Credential)
-		if email == "" {
-			email = strings.ToLower(strings.TrimSpace(parsedEmail))
-		}
-		if name == "" {
-			name = strings.TrimSpace(parsedName)
-		}
+	email, name, err := s.verifyGoogleIDToken(req.Credential)
+	if err != nil {
+		return nil, err
 	}
-
 	if email == "" {
-		return nil, fmt.Errorf("invalid or unauthenticated Google OAuth payload: email missing")
+		return nil, fmt.Errorf("Google sign-in did not provide an email")
 	}
 	if name == "" {
 		name = strings.Split(email, "@")[0]
@@ -328,10 +463,9 @@ func (s *AuthService) GoogleAuth(req models.GoogleAuthRequest) (*models.AuthResp
 			return nil, fmt.Errorf("failed to fetch google user: %w", err)
 		}
 
-		token := fmt.Sprintf("token_g_%s", generateRandomToken())
-		_, err = s.db.Exec("INSERT INTO user_tokens (token, email, created_at) VALUES ($1, $2, $3)", token, email, time.Now())
+		token, err := s.issueToken(u.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to save google session token: %w", err)
+			return nil, fmt.Errorf("failed to issue authentication token: %w", err)
 		}
 
 		fullProfile, err := s.fetchFullUserProfile(email, &u)
@@ -364,8 +498,10 @@ func (s *AuthService) GoogleAuth(req models.GoogleAuthRequest) (*models.AuthResp
 		s.users[email] = u
 	}
 
-	token := fmt.Sprintf("token_g_%s", generateRandomToken())
-	s.tokens[token] = email
+	token, err := s.issueToken(u.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to issue authentication token: %w", err)
+	}
 
 	return &models.AuthResponse{
 		Token: token,
@@ -373,48 +509,49 @@ func (s *AuthService) GoogleAuth(req models.GoogleAuthRequest) (*models.AuthResp
 	}, nil
 }
 
-func (s *AuthService) GetUserByToken(tokenHeader string) (*models.UserProfile, error) {
-	token := strings.TrimPrefix(tokenHeader, "Bearer ")
-	token = strings.TrimSpace(token)
-	if token == "" {
-		return nil, fmt.Errorf("missing authorization token")
+func (s *AuthService) GetAuthenticatedUser(tokenHeader string) (*models.UserProfile, error) {
+	userID, err := s.tokenUserID(tokenHeader)
+	if err != nil {
+		return nil, err
 	}
 
 	if s.db != nil {
-		var email string
-		err := s.db.QueryRow("SELECT email FROM user_tokens WHERE token = $1", token).Scan(&email)
+		var user models.UserProfile
+		err := s.db.QueryRow("SELECT id, name, email, provider, created_at FROM users WHERE id = $1", userID).Scan(
+			&user.ID, &user.Name, &user.Email, &user.Provider, &user.CreatedAt)
 		if err == sql.ErrNoRows {
 			return nil, ErrInvalidAuthToken
 		} else if err != nil {
-			return nil, fmt.Errorf("database query error: %w", err)
+			return nil, fmt.Errorf("could not load authenticated user: %w", err)
 		}
-
-		var u UserInternal
-		err = s.db.QueryRow("SELECT id, name, email, provider, created_at FROM users WHERE email = $1", email).Scan(
-			&u.ID, &u.Name, &u.Email, &u.Provider, &u.CreatedAt)
-		if err != nil {
-			return nil, fmt.Errorf("user record not found")
-		}
-
-		return s.fetchFullUserProfile(email, &u)
+		return &user, nil
 	}
 
 	// Memory fallback
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-
-	email, exists := s.tokens[token]
-	if !exists {
-		return nil, ErrInvalidAuthToken
+	for _, user := range s.users {
+		if user.ID == userID {
+			profile := s.toProfile(user)
+			return &profile, nil
+		}
 	}
+	return nil, ErrInvalidAuthToken
+}
 
-	user, exists := s.users[email]
-	if !exists {
-		return nil, fmt.Errorf("user not found")
+func (s *AuthService) GetUserByToken(tokenHeader string) (*models.UserProfile, error) {
+	user, err := s.GetAuthenticatedUser(tokenHeader)
+	if err != nil || s.db == nil {
+		return user, err
 	}
-
-	profile := s.toProfile(user)
-	return &profile, nil
+	internal := &UserInternal{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Provider:  user.Provider,
+		CreatedAt: user.CreatedAt,
+	}
+	return s.fetchFullUserProfile(user.Email, internal)
 }
 
 func (s *AuthService) RequestOTP(emailInput string) (string, error) {
@@ -466,6 +603,10 @@ func (s *AuthService) ResetPassword(req models.OTPVerifyRequest) error {
 	if email == "" || otp == "" || req.NewPassword == "" {
 		return fmt.Errorf("email, OTP, and new password are required")
 	}
+	passwordHash, err := hashPassword(req.NewPassword)
+	if err != nil {
+		return err
+	}
 
 	if s.db != nil {
 		var savedOTP string
@@ -484,7 +625,7 @@ func (s *AuthService) ResetPassword(req models.OTPVerifyRequest) error {
 		var exists bool
 		_ = s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)", email).Scan(&exists)
 		if exists {
-			_, err = s.db.Exec("UPDATE users SET password = $1 WHERE email = $2", req.NewPassword, email)
+			_, err = s.db.Exec("UPDATE users SET password = $1 WHERE email = $2", passwordHash, email)
 			if err != nil {
 				return fmt.Errorf("failed to update password: %w", err)
 			}
@@ -492,7 +633,7 @@ func (s *AuthService) ResetPassword(req models.OTPVerifyRequest) error {
 			userID := fmt.Sprintf("usr_%s", generateRandomToken()[:10])
 			userName := strings.Split(email, "@")[0]
 			_, err = s.db.Exec("INSERT INTO users (id, name, email, password, provider, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
-				userID, userName, email, req.NewPassword, "email", time.Now())
+				userID, userName, email, passwordHash, "email", time.Now())
 			if err != nil {
 				return fmt.Errorf("failed to create account: %w", err)
 			}
@@ -517,7 +658,7 @@ func (s *AuthService) ResetPassword(req models.OTPVerifyRequest) error {
 			ID:                   fmt.Sprintf("usr_%s", generateRandomToken()[:10]),
 			Name:                 strings.Split(email, "@")[0],
 			Email:                email,
-			Password:             req.NewPassword,
+			Password:             passwordHash,
 			Provider:             "email",
 			CreatedAt:            time.Now(),
 			SavedAnswers:         []models.QuestionAnswer{},
@@ -525,7 +666,7 @@ func (s *AuthService) ResetPassword(req models.OTPVerifyRequest) error {
 		}
 		s.users[email] = user
 	} else {
-		user.Password = req.NewPassword
+		user.Password = passwordHash
 	}
 
 	delete(s.otps, email)
@@ -533,16 +674,12 @@ func (s *AuthService) ResetPassword(req models.OTPVerifyRequest) error {
 }
 
 func (s *AuthService) SaveRecommendation(tokenHeader string, req models.SaveRecommendationRequest) (*models.SavedRecommendation, error) {
-	token := strings.TrimPrefix(tokenHeader, "Bearer ")
-	token = strings.TrimSpace(token)
+	email, err := s.emailForToken(tokenHeader)
+	if err != nil {
+		return nil, err
+	}
 
 	if s.db != nil {
-		var email string
-		err := s.db.QueryRow("SELECT email FROM user_tokens WHERE token = $1", token).Scan(&email)
-		if err != nil {
-			return nil, fmt.Errorf("unauthorized or invalid token")
-		}
-
 		recID := fmt.Sprintf("rec_%s", generateRandomToken()[:8])
 		now := time.Now()
 
@@ -578,11 +715,6 @@ func (s *AuthService) SaveRecommendation(tokenHeader string, req models.SaveReco
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	email, exists := s.tokens[token]
-	if !exists {
-		return nil, fmt.Errorf("unauthorized or invalid token")
-	}
-
 	user, exists := s.users[email]
 	if !exists {
 		return nil, fmt.Errorf("user not found")
@@ -605,28 +737,19 @@ func (s *AuthService) SaveRecommendation(tokenHeader string, req models.SaveReco
 }
 
 func (s *AuthService) UpdateSavedAnswers(tokenHeader string, answers []models.QuestionAnswer) (*models.UserProfile, error) {
-	token := strings.TrimPrefix(tokenHeader, "Bearer ")
-	token = strings.TrimSpace(token)
+	email, err := s.emailForToken(tokenHeader)
+	if err != nil {
+		return nil, err
+	}
 
 	if s.db != nil {
-		var email string
-		err := s.db.QueryRow("SELECT email FROM user_tokens WHERE token = $1", token).Scan(&email)
-		if err != nil {
-			return nil, fmt.Errorf("unauthorized or invalid token")
-		}
-
 		s.saveAnswersToDB(email, answers)
-		return s.GetUserByToken(token)
+		return s.GetUserByToken(tokenHeader)
 	}
 
 	// Memory fallback
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	email, exists := s.tokens[token]
-	if !exists {
-		return nil, fmt.Errorf("unauthorized or invalid token")
-	}
 
 	user, exists := s.users[email]
 	if !exists {
@@ -694,9 +817,9 @@ func (s *AuthService) fetchFullUserProfile(email string, u *UserInternal) (*mode
 }
 
 func (s *AuthService) DeleteAccount(tokenHeader string) error {
-	token := strings.TrimSpace(strings.TrimPrefix(tokenHeader, "Bearer "))
-	if token == "" {
-		return ErrInvalidAuthToken
+	email, err := s.emailForToken(tokenHeader)
+	if err != nil {
+		return err
 	}
 
 	if s.db != nil {
@@ -706,12 +829,12 @@ func (s *AuthService) DeleteAccount(tokenHeader string) error {
 		}
 		defer tx.Rollback()
 
-		var email string
-		if err := tx.QueryRow("SELECT email FROM user_tokens WHERE token = $1", token).Scan(&email); err != nil {
-			if err == sql.ErrNoRows {
-				return ErrInvalidAuthToken
-			}
-			return fmt.Errorf("could not verify account session: %w", err)
+		var exists bool
+		if err := tx.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)", email).Scan(&exists); err != nil {
+			return fmt.Errorf("could not verify account: %w", err)
+		}
+		if !exists {
+			return ErrInvalidAuthToken
 		}
 
 		for _, query := range []string{
@@ -735,40 +858,30 @@ func (s *AuthService) DeleteAccount(tokenHeader string) error {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	email, exists := s.tokens[token]
-	if !exists {
-		return ErrInvalidAuthToken
-	}
 	if _, exists := s.users[email]; !exists {
-		return fmt.Errorf("user not found")
+		return ErrInvalidAuthToken
 	}
 
 	delete(s.users, email)
 	delete(s.learningProfiles, email)
-	for activeToken, tokenEmail := range s.tokens {
-		if tokenEmail == email {
-			delete(s.tokens, activeToken)
-		}
-	}
 	delete(s.otps, email)
 	return nil
 }
 
-func decodeLearningProfileList(value, field string) []string {
+func decodeLearningProfileList(value, field string) ([]string, bool) {
 	var items []string
 	if err := json.Unmarshal([]byte(value), &items); err != nil {
 		log.Printf("invalid stored learning profile %s; using an empty list: %v", field, err)
-		return []string{}
+		return []string{}, false
 	}
 	if items == nil {
-		return []string{}
+		return []string{}, true
 	}
-	return items
+	return items, true
 }
 
 func (s *AuthService) GetLearningProfile(tokenHeader string) (models.LearningProfile, error) {
-	user, err := s.GetUserByToken(tokenHeader)
+	user, err := s.GetAuthenticatedUser(tokenHeader)
 	if err != nil {
 		return models.LearningProfile{}, err
 	}
@@ -784,9 +897,30 @@ func (s *AuthService) GetLearningProfile(tokenHeader string) (models.LearningPro
 		if err != nil {
 			return models.LearningProfile{}, fmt.Errorf("could not load learning profile: %w", err)
 		}
-		profile := models.LearningProfile{About: about}
-		profile.Interests = decodeLearningProfileList(interestsJSON, "interests")
-		profile.SavedOptionIDs = decodeLearningProfileList(savedOptionsJSON, "saved items")
+		interests, interestsValid := decodeLearningProfileList(interestsJSON, "interests")
+		savedOptions, savedOptionsValid := decodeLearningProfileList(savedOptionsJSON, "saved items")
+		if !interestsValid || !savedOptionsValid {
+			normalizedInterests, err := json.Marshal(interests)
+			if err != nil {
+				return models.LearningProfile{}, fmt.Errorf("could not repair stored learning interests: %w", err)
+			}
+			normalizedSavedOptions, err := json.Marshal(savedOptions)
+			if err != nil {
+				return models.LearningProfile{}, fmt.Errorf("could not repair stored saved learning items: %w", err)
+			}
+			if _, err := s.db.Exec(`
+				UPDATE user_learning_profiles
+				SET interests_json = $1, saved_option_ids_json = $2, updated_at = CURRENT_TIMESTAMP
+				WHERE email = $3`,
+				string(normalizedInterests), string(normalizedSavedOptions), user.Email); err != nil {
+				return models.LearningProfile{}, fmt.Errorf("could not repair stored learning profile: %w", err)
+			}
+		}
+		profile := models.LearningProfile{
+			About:          about,
+			Interests:      interests,
+			SavedOptionIDs: savedOptions,
+		}
 		return profile, nil
 	}
 
@@ -803,7 +937,7 @@ func (s *AuthService) GetLearningProfile(tokenHeader string) (models.LearningPro
 }
 
 func (s *AuthService) SaveLearningProfile(tokenHeader string, profile models.LearningProfile) error {
-	user, err := s.GetUserByToken(tokenHeader)
+	user, err := s.GetAuthenticatedUser(tokenHeader)
 	if err != nil {
 		return err
 	}

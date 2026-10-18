@@ -254,7 +254,10 @@ func (h *APIHandler) Login(w http.ResponseWriter, r *http.Request) {
 // POST /api/auth/google
 func (h *APIHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 	var req models.GoogleAuthRequest
-	_ = json.NewDecoder(r.Body).Decode(&req)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid Google sign-in request")
+		return
+	}
 
 	resp, err := h.authService.GoogleAuth(req)
 	if err != nil {
@@ -270,7 +273,7 @@ func (h *APIHandler) GoogleAuth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *APIHandler) NewsletterSubscription(w http.ResponseWriter, r *http.Request) {
-	user, err := h.authService.GetUserByToken(r.Header.Get("Authorization"))
+	user, err := h.authService.GetAuthenticatedUser(r.Header.Get("Authorization"))
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, err.Error())
 		return
@@ -477,7 +480,7 @@ func (h *APIHandler) requireNewsletterAdmin(w http.ResponseWriter, r *http.Reque
 		respondError(w, http.StatusForbidden, "newsletter admin actions require email and password sign-in")
 		return nil, false
 	}
-	user, err := h.authService.GetUserByToken(authHeader)
+	user, err := h.authService.GetAuthenticatedUser(authHeader)
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, err.Error())
 		return nil, false
@@ -795,7 +798,7 @@ func (h *APIHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, `type "DELETE" to confirm account deletion`)
 		return
 	}
-	user, err := h.authService.GetUserByToken(r.Header.Get("Authorization"))
+	user, err := h.authService.GetAuthenticatedUser(r.Header.Get("Authorization"))
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, err.Error())
 		return
@@ -885,7 +888,7 @@ func (h *APIHandler) LogAnalyticsEvent(w http.ResponseWriter, r *http.Request) {
 	userEmail := ""
 	authHeader := r.Header.Get("Authorization")
 	if authHeader != "" {
-		if user, err := h.authService.GetUserByToken(authHeader); err == nil && user != nil {
+		if user, err := h.authService.GetAuthenticatedUser(authHeader); err == nil && user != nil {
 			userEmail = user.Email
 		}
 	}
@@ -903,7 +906,7 @@ func (h *APIHandler) GetAnalyticsEvents(w http.ResponseWriter, r *http.Request) 
 	authHeader := r.Header.Get("Authorization")
 	userEmail := ""
 	if authHeader != "" {
-		if user, err := h.authService.GetUserByToken(authHeader); err == nil && user != nil {
+		if user, err := h.authService.GetAuthenticatedUser(authHeader); err == nil && user != nil {
 			userEmail = user.Email
 		}
 	}
@@ -922,7 +925,7 @@ func (h *APIHandler) RecordFundInteraction(w http.ResponseWriter, r *http.Reques
 	authHeader := r.Header.Get("Authorization")
 	userEmail := "anonymous"
 	if authHeader != "" {
-		if user, err := h.authService.GetUserByToken(authHeader); err == nil && user != nil {
+		if user, err := h.authService.GetAuthenticatedUser(authHeader); err == nil && user != nil {
 			userEmail = user.Email
 		}
 	}

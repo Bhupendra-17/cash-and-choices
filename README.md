@@ -93,10 +93,31 @@ go test ./...
 
 ## Sign-in session storage
 
-After sign-in, the browser stores the bearer token in local storage with a
-30-day expiry. Expired or server-rejected tokens are removed and the user is
-returned to the signed-out state; signing out also clears the stored token and
-expiry. The current implementation uses local storage rather than cookies.
+The backend issues signed HS256 bearer tokens with a 30-day lifetime. The
+client stores them in local storage and removes them on expiry or logout. The
+backend validates the signature and expiry without a session-table lookup, then
+loads the account from `users` so deleted accounts cannot continue to access
+their data. `user_tokens` is dropped by the database migration.
+
+Set `JWT_SECRET` to a unique random value of at least 32 characters in every
+deployed environment. Generate one with:
+
+```sh
+openssl rand -base64 48
+```
+
+Keep it stable across instances and deployments; changing it signs out all
+users. Local non-production runs use a development-only fallback if the
+variable is absent.
+
+Stateless tokens are not individually revocable. Logout clears the current
+browser's token, but a copied token remains valid until its 30-day expiry.
+Deleting the account invalidates it because the account lookup then fails.
+Changing a password does not revoke existing stateless tokens.
+Google sign-in credentials are checked by the server against Google's
+token-verification endpoint and the configured server-side `GOOGLE_CLIENT_ID`.
+Email/password credentials are stored as bcrypt hashes; legacy plaintext
+passwords are upgraded to bcrypt after a successful login.
 
 ## Weekly financial-literacy newsletter
 

@@ -26,7 +26,10 @@ func init() {
 	aiService := services.NewAIService(cfg)
 	calcService := services.NewCalculatorService()
 	emailService := services.NewEmailService(cfg)
-	authService := services.NewAuthService(database, emailService)
+	authService, err := services.NewAuthService(database, emailService, cfg.JWTSecret, cfg.GoogleClientID)
+	if err != nil {
+		log.Fatalf("could not initialize authentication service: %v", err)
+	}
 	analyticsService := services.NewAnalyticsService(database)
 	featuredService := services.NewFeaturedFundsService(database, mfService)
 	newsletterService := services.NewNewsletterService(database, cfg.NewsletterAdminEmails)

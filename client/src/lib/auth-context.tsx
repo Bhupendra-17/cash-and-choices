@@ -14,6 +14,7 @@ type AuthContextType = {
   user: UserProfile | null;
   token: string | null;
   isLoading: boolean;
+  refreshSession: () => Promise<UserProfile | null>;
   login: (email: string, password: string) => Promise<void>;
   signup: (
     name: string,
@@ -68,7 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   // Query user profile from /api/auth/me using TanStack React Query
-  const { data: user = null, isLoading } = useQuery<UserProfile | null>({
+  const {
+    data: user = null,
+    isLoading,
+    refetch,
+  } = useQuery<UserProfile | null>({
     queryKey: ["auth", "me", token],
     queryFn: async () => {
       if (!token) return null;
@@ -86,6 +91,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     enabled: !!token,
     staleTime: 1000 * 60 * 5, // Cache profile for 5 mins
   });
+
+  const refreshSession = useCallback(async () => {
+    if (!token) return null;
+    const result = await refetch();
+    return result.isError ? null : (result.data ?? null);
+  }, [refetch, token]);
 
   useEffect(() => {
     if (!token) return;
@@ -244,6 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         token,
         isLoading,
+        refreshSession,
         login,
         signup,
         googleLogin,
