@@ -72,7 +72,6 @@ function AuthPage() {
 
       const params = new URLSearchParams(hash ? hash.substring(1) : query);
       const idToken = params.get("id_token");
-      const accessToken = params.get("access_token");
       const providerError = params.get("error");
 
       if (oauthCallbackHandled.current) return;
@@ -86,35 +85,20 @@ function AuthPage() {
         return;
       }
 
-      if (idToken || accessToken) {
+      if (idToken) {
         oauthCallbackHandled.current = true;
         setLoading(true);
         setError(null);
         setGoogleError(null);
         setGoogleRetryable(false);
         try {
-          if (!idToken) throw new Error("Google did not return an ID token.");
-
           let email = "";
           let name = "";
 
-          if (idToken) {
-            const payload = parseJwtPayload(idToken);
-            if (payload) {
-              email = payload.email || "";
-              name = payload.name || "";
-            }
-          }
-
-          if (!email && accessToken) {
-            const userinfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-              headers: { Authorization: `Bearer ${accessToken}` },
-            });
-            if (userinfoRes.ok) {
-              const info = await userinfoRes.json();
-              email = info.email || "";
-              name = info.name || "";
-            }
+          const payload = parseJwtPayload(idToken);
+          if (payload) {
+            email = payload.email || "";
+            name = payload.name || "";
           }
 
           await googleLogin({
@@ -223,7 +207,7 @@ function AuthPage() {
       `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(clientId)}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&response_type=id_token token` +
+      `&response_type=id_token` +
       `&scope=${encodeURIComponent("openid email profile")}` +
       `&nonce=${nonce}` +
       `&prompt=select_account`;

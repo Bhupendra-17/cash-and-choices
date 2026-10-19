@@ -765,6 +765,10 @@ func (h *APIHandler) GetLearningProfile(w http.ResponseWriter, r *http.Request) 
 
 // PUT /api/user/learning-profile
 func (h *APIHandler) SaveLearningProfile(w http.ResponseWriter, r *http.Request) {
+	if _, err := h.authService.GetAuthenticatedUser(r.Header.Get("Authorization")); err != nil {
+		respondError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, 16*1024)
 	var profile models.LearningProfile
 	if err := json.NewDecoder(r.Body).Decode(&profile); err != nil {
@@ -787,6 +791,11 @@ func (h *APIHandler) SaveLearningProfile(w http.ResponseWriter, r *http.Request)
 
 // DELETE /api/auth/me
 func (h *APIHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	user, err := h.authService.GetAuthenticatedUser(r.Header.Get("Authorization"))
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
 	var req struct {
 		Confirmation string `json:"confirmation"`
 	}
@@ -796,11 +805,6 @@ func (h *APIHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Confirmation != "DELETE" {
 		respondError(w, http.StatusBadRequest, `type "DELETE" to confirm account deletion`)
-		return
-	}
-	user, err := h.authService.GetAuthenticatedUser(r.Header.Get("Authorization"))
-	if err != nil {
-		respondError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 	if err := h.authService.DeleteAccount(r.Header.Get("Authorization")); err != nil {
@@ -823,6 +827,10 @@ func (h *APIHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 // POST /api/user/recommendations
 func (h *APIHandler) SaveRecommendation(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
+	if _, err := h.authService.GetAuthenticatedUser(authHeader); err != nil {
+		respondError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
 	var req models.SaveRecommendationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid json payload")
@@ -841,6 +849,10 @@ func (h *APIHandler) SaveRecommendation(w http.ResponseWriter, r *http.Request) 
 // POST /api/user/answers
 func (h *APIHandler) UpdateSavedAnswers(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
+	if _, err := h.authService.GetAuthenticatedUser(authHeader); err != nil {
+		respondError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
 	var answers []models.QuestionAnswer
 	if err := json.NewDecoder(r.Body).Decode(&answers); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid json payload")
