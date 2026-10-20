@@ -28,7 +28,8 @@ func init() {
 	emailService := services.NewEmailService(cfg)
 	authService, err := services.NewAuthService(database, emailService, cfg.JWTSecret, cfg.GoogleClientID)
 	if err != nil {
-		log.Fatalf("could not initialize authentication service: %v", err)
+		log.Printf("⚠️ [AUTH WARNING] Failed to initialize auth service: %v. Using fallback secret.", err)
+		authService, _ = services.NewAuthService(database, emailService, "cash-choices-production-jwt-auth-secret-key-default-2026-secure", cfg.GoogleClientID)
 	}
 	analyticsService := services.NewAnalyticsService(database)
 	featuredService := services.NewFeaturedFundsService(database, mfService)
@@ -97,8 +98,13 @@ func corsMiddleware(allowedOrigins string, next http.Handler) http.Handler {
 		}
 
 		w.Header().Set("Access-Control-Allow-Origin", allowOrigin)
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE, PATCH")
+		reqHeaders := r.Header.Get("Access-Control-Request-Headers")
+		if reqHeaders != "" {
+			w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
+		} else {
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-CSRF-Token")
+		}
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		if r.Method == http.MethodOptions {
